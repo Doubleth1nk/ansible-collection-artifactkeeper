@@ -26,7 +26,7 @@ The collection intentionally has no opinion about secret storage. Use Ansible Va
 ansible-galaxy collection install artifactkeeper.core
 ```
 
-Or in `requirements.yml`:
+Or using [`examples/requirements.yml`](examples/requirements.yml):
 
 ```yaml
 ---
@@ -37,7 +37,7 @@ collections:
 Then run:
 
 ```bash
-ansible-galaxy collection install -r requirements.yml
+ansible-galaxy collection install -r examples/requirements.yml
 ```
 
 ## Authentication
