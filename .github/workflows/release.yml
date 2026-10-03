@@ -17,7 +17,7 @@ jobs:
       ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: ansible_collections/artifactkeeper/core
 
