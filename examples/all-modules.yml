@@ -1,0 +1,118 @@
+---
+- name: Manage Artifact Keeper resources
+  hosts: localhost
+  gather_facts: false
+  vars:
+    artifactkeeper_api_url: https://artifacts.example.com
+    artifactkeeper_token: "{{ lookup('env', 'ARTIFACTKEEPER_TOKEN') }}"
+  tasks:
+    - name: Create engineering project
+      artifactkeeper.core.project:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        key: engineering
+        name: Engineering
+        description: Engineering artifacts
+        quota_bytes: 107374182400
+        state: present
+
+    - name: Read engineering project information
+      artifactkeeper.core.project_info:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        key: engineering
+      register: engineering_project
+
+    - name: Create local Python repository
+      artifactkeeper.core.repository:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        key: python-local
+        name: Python Local
+        description: Internal Python packages
+        format: pypi
+        repo_type: local
+        project_key: engineering
+        is_public: false
+        state: present
+
+    - name: Create PyPI remote repository
+      artifactkeeper.core.repository:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        key: pypi-remote
+        name: PyPI Remote
+        format: pypi
+        repo_type: remote
+        upstream_url: https://pypi.org/simple
+        upstream_auth_type: none
+        project_key: engineering
+        age_gate:
+          enabled: true
+          min_age_days: 7
+          mode: upstream_publish_time
+        state: present
+
+    - name: Create virtual Python repository
+      artifactkeeper.core.repository:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        key: python
+        name: Python
+        format: pypi
+        repo_type: virtual
+        project_key: engineering
+        state: present
+
+    - name: Set virtual repository members
+      artifactkeeper.core.virtual_repository_members:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        repository: python
+        members:
+          - key: python-local
+            priority: 10
+          - key: pypi-remote
+            priority: 20
+
+    - name: Create automation service account
+      artifactkeeper.core.service_account:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        name: ci-publisher
+        description: CI package publisher
+        is_active: true
+        state: present
+
+    - name: Create CI service-account token
+      artifactkeeper.core.service_account_token:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        service_account: ci-publisher
+        name: github-actions
+        description: GitHub Actions publishing token
+        scopes:
+          - api
+        expires_in_days: 90
+        state: present
+      register: ci_token
+      no_log: true
+
+    - name: Grant engineers access to the project
+      artifactkeeper.core.project_member:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        project: engineering
+        principal_type: group
+        principal: engineers
+        actions:
+          - read
+          - write
+        state: present
+
+    - name: Look up engineers group
+      artifactkeeper.core.group_info:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        name: engineers
+      register: engineers_group

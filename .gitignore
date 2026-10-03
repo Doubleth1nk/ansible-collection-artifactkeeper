@@ -1,0 +1,15 @@
+*.py[cod]
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+.ansible/
+dist/
+tests/output/
+*.tar.gz
+*.zip
+.coverage
+htmlcov/
+.idea/
+.vscode/
+.DS_Store

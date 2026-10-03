@@ -1,0 +1,34 @@
+---
+# This target intentionally requires a disposable/live Artifact Keeper instance.
+# Supply artifactkeeper_test_url and artifactkeeper_test_token through the
+# ansible-test integration environment; normal unit/sanity CI does not run it.
+- name: Require explicit integration credentials
+  ansible.builtin.assert:
+    that:
+      - artifactkeeper_test_url is defined
+      - artifactkeeper_test_token is defined
+    fail_msg: Set artifactkeeper_test_url and artifactkeeper_test_token for live integration testing.
+
+- name: Verify read-only project lookup
+  artifactkeeper.core.project_info:
+    api_url: "{{ artifactkeeper_test_url }}"
+    token: "{{ artifactkeeper_test_token }}"
+  register: artifactkeeper_projects
+
+- name: Validate project-info structured result
+  ansible.builtin.assert:
+    that:
+      - artifactkeeper_projects.changed is false
+      - artifactkeeper_projects.projects is iterable
+
+- name: Verify read-only group lookup
+  artifactkeeper.core.group_info:
+    api_url: "{{ artifactkeeper_test_url }}"
+    token: "{{ artifactkeeper_test_token }}"
+  register: artifactkeeper_groups
+
+- name: Validate structured result
+  ansible.builtin.assert:
+    that:
+      - artifactkeeper_groups.changed is false
+      - artifactkeeper_groups.groups is iterable

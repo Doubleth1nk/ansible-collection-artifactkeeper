@@ -1,0 +1,21 @@
+---
+name: Feature request
+description: Propose a new resource or behavior
+title: "[feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: Relevant Artifact Keeper API endpoint/schema
+      description: Link the authoritative OpenAPI/backend definition if known.
+  - type: textarea
+    id: interface
+    attributes:
+      label: Proposed Ansible interface

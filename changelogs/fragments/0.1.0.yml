@@ -1,0 +1,14 @@
+---
+minor_changes:
+  - >-
+    Initial artifactkeeper.core collection with project, project-info,
+    repository, service-account, service-account-token, project-member,
+    virtual-repository-members, and group-info modules; repository age-gate
+    policy is managed through the repository module.
+  - >-
+    Shared Bearer/JWT Artifact Keeper API client with TLS, pagination,
+    error redaction, and resource lookup helpers.
+  - >-
+    Remote repository support includes the current basic, bearer, AWS ECR,
+    AWS CodeArtifact, and none upstream-auth modes without storing AWS
+    credentials in the collection.

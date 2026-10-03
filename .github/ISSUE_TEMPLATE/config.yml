@@ -1,0 +1,6 @@
+---
+blank_issues_enabled: true
+contact_links:
+  - name: Artifact Keeper documentation
+    url: https://artifactkeeper.com/docs/
+    about: Check the upstream product documentation.

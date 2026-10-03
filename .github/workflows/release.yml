@@ -1,0 +1,87 @@
+---
+name: Release collection
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          path: ansible_collections/artifactkeeper/core
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install release dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'ansible-core>=2.21,<2.22' ansible-lint
+
+      - name: Verify tag matches galaxy.yml
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: ansible_collections/artifactkeeper/core
+        run: |
+          version="$(python - <<'PY'
+          import yaml
+          print(yaml.safe_load(open('galaxy.yml'))['version'])
+          PY
+          )"
+          test "${GITHUB_REF_NAME}" = "v${version}"
+
+      - name: Test source
+        working-directory: ansible_collections/artifactkeeper/core
+        run: |
+          python -m compileall -q plugins tests
+          ansible-test sanity --python 3.13
+          ansible-test units --venv --python 3.13
+          ansible-lint
+
+      - name: Build exact release artifact
+        working-directory: ansible_collections/artifactkeeper/core
+        run: |
+          rm -rf dist
+          mkdir dist
+          ansible-galaxy collection build --force --output-path dist
+          artifact="$(find dist -maxdepth 1 -name 'artifactkeeper-core-*.tar.gz' -print -quit)"
+          test -n "$artifact"
+          echo "ARTIFACT=$artifact" >> "$GITHUB_ENV"
+
+      - name: Validate built artifact and documentation
+        working-directory: ansible_collections/artifactkeeper/core
+        run: |
+          install_root="${RUNNER_TEMP}/collections"
+          ansible-galaxy collection install "$ARTIFACT" -p "$install_root" --force
+          export ANSIBLE_COLLECTIONS_PATH="${install_root}:${ANSIBLE_COLLECTIONS_PATH:-}"
+          for module in project project_info repository service_account service_account_token project_member virtual_repository_members group_info; do
+            ansible-doc -t module "artifactkeeper.core.${module}" >/dev/null
+          done
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: ansible_collections/artifactkeeper/core
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "$ARTIFACT" --generate-notes --verify-tag
+
+      - name: Publish exact artifact to Ansible Galaxy
+        if: >-
+          startsWith(github.ref, 'refs/tags/') &&
+          github.repository == 'artifact-keeper/ansible-collection-artifactkeeper'
+        working-directory: ansible_collections/artifactkeeper/core
+        env:
+          ANSIBLE_GALAXY_API_TOKEN: ${{ secrets.ANSIBLE_GALAXY_API_TOKEN }}
+        run: |
+          test -n "$ANSIBLE_GALAXY_API_TOKEN"
+          ansible-galaxy collection publish "$ARTIFACT" --api-key "$ANSIBLE_GALAXY_API_TOKEN"

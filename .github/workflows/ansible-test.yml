@@ -1,0 +1,101 @@
+---
+name: Ansible collection CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  supported-core:
+    name: ansible-core ${{ matrix.core }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - core: "2.20"
+            pip_spec: "ansible-core>=2.20,<2.21"
+          - core: "2.21"
+            pip_spec: "ansible-core>=2.21,<2.22"
+    steps:
+      - name: Check out collection at canonical collection path
+        uses: actions/checkout@v4
+        with:
+          path: ansible_collections/artifactkeeper/core
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: ansible_collections/artifactkeeper/core/requirements-dev.txt
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "${{ matrix.pip_spec }}" ansible-lint pytest pytest-cov
+
+      - name: Python syntax
+        working-directory: ansible_collections/artifactkeeper/core
+        run: python -m compileall -q plugins tests
+
+      - name: ansible-test sanity
+        working-directory: ansible_collections/artifactkeeper/core
+        run: ansible-test sanity --python 3.13
+
+      - name: ansible-test units
+        working-directory: ansible_collections/artifactkeeper/core
+        run: ansible-test units --venv --python 3.13
+
+      - name: ansible-lint
+        working-directory: ansible_collections/artifactkeeper/core
+        run: ansible-lint
+
+      - name: Build and install collection
+        working-directory: ansible_collections/artifactkeeper/core
+        run: |
+          rm -rf dist
+          mkdir dist
+          ansible-galaxy collection build --force --output-path dist
+          artifact="$(find dist -maxdepth 1 -name 'artifactkeeper-core-*.tar.gz' -print -quit)"
+          test -n "$artifact"
+          install_root="${RUNNER_TEMP}/collections"
+          ansible-galaxy collection install "$artifact" -p "$install_root" --force
+          export ANSIBLE_COLLECTIONS_PATH="${install_root}:${ANSIBLE_COLLECTIONS_PATH:-}"
+          for module in project project_info repository service_account service_account_token project_member virtual_repository_members group_info; do
+            ansible-doc -t module "artifactkeeper.core.${module}" >/dev/null
+          done
+
+  devel:
+    name: ansible-core devel (scheduled)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Check out collection at canonical collection path
+        uses: actions/checkout@v4
+        with:
+          path: ansible_collections/artifactkeeper/core
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install ansible-core devel
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'ansible-core @ git+https://github.com/ansible/ansible.git@devel' pytest
+
+      - name: Test devel
+        working-directory: ansible_collections/artifactkeeper/core
+        run: |
+          ansible-test sanity --python 3.13
+          ansible-test units --venv --python 3.13
