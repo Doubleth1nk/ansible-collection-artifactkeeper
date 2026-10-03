@@ -16,6 +16,8 @@ jobs:
   supported-core:
     name: ansible-core ${{ matrix.core }}
     runs-on: ubuntu-latest
+    env:
+      ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}
     strategy:
       fail-fast: false
       matrix:
@@ -78,6 +80,8 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     continue-on-error: true
+    env:
+      ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}
     steps:
       - name: Check out collection at canonical collection path
         uses: actions/checkout@v4
