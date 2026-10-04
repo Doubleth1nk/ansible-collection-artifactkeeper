@@ -28,7 +28,7 @@ jobs:
             pip_spec: "ansible-core>=2.21,<2.22"
     steps:
       - name: Check out collection at canonical collection path
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: ansible_collections/artifactkeeper/core
 
@@ -84,7 +84,7 @@ jobs:
       ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}
     steps:
       - name: Check out collection at canonical collection path
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: ansible_collections/artifactkeeper/core
 
