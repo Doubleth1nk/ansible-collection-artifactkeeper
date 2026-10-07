@@ -5,6 +5,7 @@ import pytest
 from ansible_collections.artifactkeeper.core.plugins.module_utils.api import ArtifactKeeperError
 from ansible_collections.artifactkeeper.core.plugins.module_utils.common import (
     canonical_service_account_username,
+    group_members,
     service_account_by_name,
     service_account_create_name,
     user_by_username,
@@ -90,3 +91,65 @@ def test_user_by_username_ambiguous_fails():
 
     with pytest.raises(ArtifactKeeperError, match="multiple users returned with username 'alice'"):
         user_by_username(client, "alice")
+
+
+class GroupDetailClient:
+    def __init__(self, pages):
+        self.pages = list(pages)
+        self.calls = []
+
+    def get(self, path, params=None):
+        self.calls.append((path, params))
+        return self.pages.pop(0)
+
+
+def member(index):
+    return {"user_id": "u%d" % index, "username": "user%d" % index}
+
+
+def test_group_members_single_page():
+    client = GroupDetailClient([{"members": [member(1), member(2)], "members_total": 2}])
+
+    assert group_members(client, "g1") == [member(1), member(2)]
+    assert client.calls == [("/groups/g1", {"member_limit": 200, "member_offset": 0})]
+
+
+def test_group_members_follows_offsets_until_total():
+    first = [member(index) for index in range(200)]
+    second = [member(index) for index in range(200, 250)]
+    client = GroupDetailClient([
+        {"members": first, "members_total": 250},
+        {"members": second, "members_total": 250},
+    ])
+
+    assert group_members(client, "g1") == first + second
+    assert [params["member_offset"] for path, params in client.calls] == [0, 200]
+
+
+def test_group_members_stops_on_empty_page():
+    client = GroupDetailClient([
+        {"members": [member(1)], "members_total": 5},
+        {"members": [], "members_total": 5},
+    ])
+
+    assert group_members(client, "g1", page_size=1) == [member(1)]
+    assert len(client.calls) == 2
+
+
+def test_group_members_without_total_pages_until_empty():
+    client = GroupDetailClient([
+        {"members": [member(1)]},
+        {"members": [member(2)]},
+        {"members": []},
+    ])
+
+    assert group_members(client, "g1", page_size=1) == [member(1), member(2)]
+
+
+def test_group_members_loop_guard():
+    class Endless:
+        def get(self, path, params=None):
+            return {"members": [member(1)]}
+
+    with pytest.raises(ArtifactKeeperError, match="refusing an unbounded loop"):
+        group_members(Endless(), "g1", page_size=1)
