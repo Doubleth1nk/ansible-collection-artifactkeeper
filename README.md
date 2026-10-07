@@ -6,7 +6,7 @@ The collection manages projects, repositories (including repository age-gate pol
 
 ## API baseline
 
-Version 0.2.0 is implemented against the **Artifact Keeper API 1.10.1 OpenAPI contract** as published by `artifact-keeper/artifact-keeper-api` on 2026-10-03. No older Artifact Keeper version range is claimed until integration coverage establishes one. See [docs/api-compatibility.md](docs/api-compatibility.md) for the API decisions that shape module behavior. The API evolves quickly, so CI and future collection releases should continue to validate against the current specification.
+The current collection source targets the **Artifact Keeper API 1.10.2 contract**. The 0.2.0 collection release was implemented against Artifact Keeper 1.10.1. All endpoints the collection currently uses remain compatible between 1.10.1 and 1.10.2, except that token-creation request validation became stricter in 1.10.2; the payload sent by `service_account_token` already complies. No older Artifact Keeper version range is claimed until integration coverage establishes one. See [docs/api-compatibility.md](docs/api-compatibility.md) for the API decisions that shape module behavior. The API evolves quickly, so CI and future collection releases should continue to validate against the current specification.
 
 The current OpenAPI contract defines Bearer authentication for management endpoints. It does **not** define an `X-API-Key` management security scheme, even though an older/current repository README may mention that header. This collection follows the OpenAPI/backend contract and therefore does not expose an `api_key` parameter.
 
@@ -79,6 +79,10 @@ The shared client calls `/api/v1/auth/login`, receives the JWT, and uses it as a
 ```
 
 Credentials are declared with `no_log=True` in module argument specifications. For tasks that can return newly minted secrets, such as service-account tokens or a server-generated user password (`generated_password`), also use task-level `no_log: true`.
+
+### API token scopes
+
+When the modules authenticate with an API token, the token's scopes limit what they can do. Since Artifact Keeper 1.10.2, repository management (create, update, upstream authentication, virtual members, and similar settings) accepts the specific `write:repositories` scope, and deleting a repository accepts `delete:repositories`. Earlier releases accepted these calls only from username/password sessions or `admin`/`*` tokens. An administrator presenting a token restricted to some repositories sees only those repositories, including in `repository_info` listings, so use an unrestricted credential for instance-wide management.
 
 ## TLS
 

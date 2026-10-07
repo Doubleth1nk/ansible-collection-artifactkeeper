@@ -1,14 +1,20 @@
 # Artifact Keeper API compatibility
 
-`artifactkeeper.core` 0.2.0 is implemented against the Artifact Keeper API **1.10.1** OpenAPI contract and backend behavior reviewed on 2026-10-03.
+The current `artifactkeeper.core` source targets the Artifact Keeper API **1.10.2** contract. The 0.2.0 collection release was implemented against the 1.10.1 OpenAPI contract and backend behavior reviewed on 2026-10-03.
 
 The current API, not an older playbook or role, is authoritative for endpoint paths, schemas, authentication, status codes, and mutation semantics. The implementation intentionally keeps API-specific behavior in `plugins/module_utils/api.py` and resource normalization/reconciliation in the modules.
+
+## API baseline and provenance
+
+Artifact Keeper 1.10.2 is a security patch release. Upstream did not publish a 1.10.2 OpenAPI document: the `artifact-keeper-api` repository stops at `v1.10.1`, and the release job that exports and publishes the spec timed out for the `v1.10.2` tag. The 1.10.2 document used for this compatibility review was therefore regenerated from the signed `v1.10.2` release tag (commit `8e9f533`) with upstream's own export procedure (`cargo test --lib export_openapi_spec -- --ignored` with `SQLX_OFFLINE=true` and `EXPORT_OPENAPI_SPEC=1`). The procedure was validated by regenerating 1.10.1 the same way, which reproduced the published 1.10.1 `openapi.json` semantically.
+
+Compared with 1.10.1, the 1.10.2 contract has the same 471 operations and 505 schemas. Every operation and transitively referenced schema used by the collection is unchanged, except `POST /api/v1/service-accounts/{id}/tokens`, whose `CreateTokenRequest` now sets `additionalProperties: false` and which documents new `400` and `403` responses. The payload sent by `artifactkeeper.core.service_account_token` already complies (see "Service-account tokens"). Behavior changes that the OpenAPI document does not express, such as token scope requirements and listing visibility, are described in "API token scopes" below.
 
 ## Authentication
 
 Management endpoints under `/api/v1` use Bearer authentication. The collection supports either an existing Artifact Keeper bearer token or administrator username/password credentials; username/password mode logs in at `/api/v1/auth/login` and uses the returned JWT for subsequent requests.
 
-The 1.10.1 OpenAPI security schemes expose `basic_auth` and `bearer_auth`. Basic authentication is documented for package-manager endpoints, not management endpoints. No management `X-API-Key` security scheme is present in the current OpenAPI contract, so the collection does not expose an `api_key` module parameter.
+The OpenAPI security schemes (unchanged in 1.10.2) expose `basic_auth` and `bearer_auth`. Basic authentication is documented for package-manager endpoints, not management endpoints. No management `X-API-Key` security scheme is present in the current OpenAPI contract, so the collection does not expose an `api_key` module parameter.
 
 ## Projects
 
@@ -34,6 +40,22 @@ Token plaintext is returned only by the token-creation response. Subsequent toke
 
 Named token metadata is reconciled idempotently. Scopes are treated as immutable token metadata; changing them revokes and recreates the matching token. The original relative `expires_in_days` value and token creation description cannot be reconstructed reliably from later list responses, so the collection does not claim idempotent comparison for those creation-only inputs.
 
+The module sends only `name`, `scopes`, and, when supplied, `description` and `expires_in_days`. A unit test pins this payload. Artifact Keeper 1.10.2 made token creation stricter on every token-mint endpoint:
+
+- Unknown request fields are rejected with HTTP 400 instead of being ignored, and malformed bodies return 400 instead of 422.
+- `repository_ids: []` is rejected with HTTP 400, because an empty list would otherwise store no restriction and produce an unrestricted token. An empty or non-restricting `repo_selector` is rejected the same way.
+- A repository-restricted calling credential imposes a repository ceiling: the new token inherits the caller's repository restriction, the caller may not name its own `repository_ids` or `repo_selector` for it (HTTP 403), and a restricted caller whose restriction matches no repository cannot mint at all (HTTP 403).
+
+`artifactkeeper.core.service_account_token` does not manage repository restrictions explicitly: it never sends `repository_ids` or `repo_selector`. A token it creates is therefore unrestricted when the module authenticates with an unrestricted credential (a username/password session or an unrestricted token), and restricted to the caller's repositories when it authenticates with a repository-restricted token. Repository restriction is not part of the module's idempotency comparison.
+
+The upstream 1.10.2 security advisory ([GHSA-qh2h-m7hp-27pc](https://github.com/artifact-keeper/artifact-keeper/security/advisories/GHSA-qh2h-m7hp-27pc)) notes that tokens minted through a repository-restricted credential before 1.10.2 may be unrestricted, and that this is not recorded anywhere. Because the module treats an existing token with the same name and scopes as up to date, it does not detect or replace such tokens. The advisory recommends reviewing and rotating them; with this module, a token is rotated by running it with `state: absent` and then `state: present`.
+
+## API token scopes
+
+Scopes on the credential the collection authenticates with limit what the modules can do. Username/password sessions are not limited by scopes. In 1.10.2, repository management (create and update, upstream authentication, virtual members, cache, routing, and similar settings) requires the `write:repositories` scope, and deleting a repository requires `delete:repositories`. A bare `write`/`delete` scope and `admin`/`*` tokens still satisfy these. Before 1.10.2, these calls were accepted only from sessions and `admin`/`*` tokens, so nothing that worked before is refused.
+
+From 1.10.2, an administrator presenting a token restricted to some repositories is confined to those repositories in the repository listing as well. `artifactkeeper.core.repository_info` listings therefore return only those repositories. Exact repository lookups by key were already confined in 1.10.1. Use an unrestricted credential for instance-wide management.
+
 ## Repository age gates
 
 Artifact Keeper exposes age-gate configuration through `GET`/`PUT /api/v1/repositories/{key}/age-gate`, but the Ansible collection intentionally models that configuration as the nested `age_gate` option of `artifactkeeper.core.repository` rather than as a separate public module. This keeps one-to-one repository policy with the repository resource while still using the dedicated API endpoint internally.
@@ -48,7 +70,7 @@ Project membership is resolved from human-readable project/principal identifiers
 
 Fine-grained repository grants are rows in the `/api/v1/permissions` collection with `target_type = repository`. The API documents that these rows, together with project grants, are what repository authorization resolves; role assignments made through `/api/v1/users/{id}/roles` do not grant repository access. Project grants are the same kind of row with `target_type = project` and remain owned by `artifactkeeper.core.project_member`, so `artifactkeeper.core.repository_permission` only ever reads or writes `target_type = repository` rows.
 
-A grant is identified by repository, principal type, and principal. The module lists `/permissions` filtered by all four identity fields, re-checks those fields client-side, and fails if more than one row matches. `POST /permissions` returns HTTP 409 for an existing grant rather than upserting, so the module always looks up first, then creates with `POST` or updates with `PUT /permissions/{id}`. In the 1.10.1 contract, the `PUT` body is the same `CreatePermissionRequest` schema as `POST`, so updates send all five required fields (`principal_type`, `principal_id`, `target_type`, `target_id`, `actions`).
+A grant is identified by repository, principal type, and principal. The module lists `/permissions` filtered by all four identity fields, re-checks those fields client-side, and fails if more than one row matches. `POST /permissions` returns HTTP 409 for an existing grant rather than upserting, so the module always looks up first, then creates with `POST` or updates with `PUT /permissions/{id}`. In the contract (1.10.1 and 1.10.2), the `PUT` body is the same `CreatePermissionRequest` schema as `POST`, so updates send all five required fields (`principal_type`, `principal_id`, `target_type`, `target_id`, `actions`).
 
 The contract gives no enumeration for `actions`, so action names are passed through unvalidated and compared as a set. User principals are resolved through `/users?search=` and service-account rows are excluded client-side using the `is_service_account` response field, because the contract does not document a wire format for boolean query parameters.
 
@@ -86,4 +108,4 @@ The API's virtual-members `PUT` operation replaces the complete member set. `art
 
 ## Compatibility policy
 
-0.2.0 claims compatibility with the API contract reviewed above. No older Artifact Keeper release range is claimed until integration coverage establishes one. Future collection releases should re-review the current `artifact-keeper/artifact-keeper-api` OpenAPI contract and backend implementation before changing behavior.
+The current collection source claims compatibility with the Artifact Keeper 1.10.2 contract reviewed above; the 0.2.0 release claimed compatibility with 1.10.1. No older Artifact Keeper release range is claimed until integration coverage establishes one. Future collection releases should re-review the current `artifact-keeper/artifact-keeper-api` OpenAPI contract and backend implementation before changing behavior.

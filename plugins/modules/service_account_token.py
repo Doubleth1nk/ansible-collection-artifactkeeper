@@ -23,6 +23,13 @@ author:
   - Tuxthepirate (@Doubleth1nk)
 extends_documentation_fragment:
   - artifactkeeper.core.artifactkeeper
+notes:
+  - This module does not manage repository restrictions; it never sends C(repository_ids) or C(repo_selector).
+    A token it creates is unrestricted when the module authenticates with an unrestricted credential.
+    When it authenticates with a repository-restricted token, Artifact Keeper 1.10.2 and later restrict the new token to that credential's repositories.
+  - Repository restrictions are not compared, so an existing token with the same name and scopes is left unchanged.
+    Artifact Keeper 1.10.2 advises reviewing and rotating tokens minted through a repository-restricted credential before upgrading;
+    rotate a token by running this module with O(state=absent) and then O(state=present).
 options:
   service_account:
     description: Service-account name or server-prefixed username.

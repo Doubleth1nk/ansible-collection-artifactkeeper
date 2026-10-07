@@ -30,7 +30,7 @@ options:
     description: Project description. An omitted value is left unmanaged on existing projects.
     type: str
   quota_bytes:
-    description: Optional project quota metadata in bytes. Artifact Keeper 1.10.1 stores this value but does not enforce it.
+    description: Optional project quota metadata in bytes. Artifact Keeper stores this value but does not currently enforce it.
     type: int
   state:
     description: Desired project lifecycle state.

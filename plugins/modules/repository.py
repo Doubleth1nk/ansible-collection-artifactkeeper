@@ -42,7 +42,7 @@ options:
   upstream_url:
     description:
       - Upstream URL for remote repositories.
-      - Artifact Keeper 1.10.1 does not expose this field in the general repository PATCH schema.
+      - Artifact Keeper does not expose this field in the general repository PATCH schema.
       - Changing an existing upstream URL therefore fails rather than silently recreating the repository.
     type: str
   upstream_auth_type:
@@ -367,7 +367,7 @@ def run_module(module, client):
     for immutable in ("format", "repo_type"):
         if p.get(immutable) is not None and existing.get(immutable) != p[immutable]:
             module.fail_json(
-                msg="repository %s is immutable in Artifact Keeper 1.10.1: current=%r desired=%r" % (
+                msg="repository %s is immutable in Artifact Keeper: current=%r desired=%r" % (
                     immutable,
                     existing.get(immutable),
                     p[immutable],
@@ -377,7 +377,7 @@ def run_module(module, client):
     if p.get("upstream_url") is not None and existing.get("upstream_url") != p["upstream_url"]:
         module.fail_json(
             msg=(
-                "Artifact Keeper 1.10.1 does not expose upstream_url in "
+                "Artifact Keeper does not expose upstream_url in "
                 "UpdateRepositoryRequest; create a new remote repository or "
                 "change it outside this module"
             )
