@@ -110,6 +110,37 @@
           - write
         state: present
 
+    - name: Grant engineers direct access to the local Python repository
+      artifactkeeper.core.repository_permission:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        repository: python-local
+        principal_type: group
+        principal: engineers
+        actions:
+          - read
+          - write
+        state: present
+
+    - name: Grant the CI service account read access to the PyPI remote
+      artifactkeeper.core.repository_permission:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        repository: pypi-remote
+        principal_type: service_account
+        principal: ci-publisher
+        actions:
+          - read
+        state: present
+
+    - name: List PyPI repositories in the engineering project
+      artifactkeeper.core.repository_info:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        format: pypi
+        project: engineering
+      register: engineering_pypi_repositories
+
     - name: Look up engineers group
       artifactkeeper.core.group_info:
         api_url: "{{ artifactkeeper_api_url }}"

@@ -1,0 +1,8 @@
+---
+minor_changes:
+  - >-
+    Add the ``repository_permission`` module to manage fine-grained repository
+    grants for users, service accounts, and groups.
+  - >-
+    Add the ``repository_info`` module for read-only exact or filtered
+    repository lookups.

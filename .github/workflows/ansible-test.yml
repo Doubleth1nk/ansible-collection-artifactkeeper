@@ -71,7 +71,10 @@ jobs:
           install_root="${RUNNER_TEMP}/collections"
           ansible-galaxy collection install "$artifact" -p "$install_root" --force
           export ANSIBLE_COLLECTIONS_PATH="${install_root}:${ANSIBLE_COLLECTIONS_PATH:-}"
-          for module in project project_info repository service_account service_account_token project_member virtual_repository_members group_info; do
+          for module in \
+              project project_info repository service_account service_account_token \
+              project_member virtual_repository_members group_info \
+              repository_info repository_permission; do
             ansible-doc -t module "artifactkeeper.core.${module}" >/dev/null
           done
 
