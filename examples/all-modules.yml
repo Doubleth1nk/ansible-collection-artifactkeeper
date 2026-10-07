@@ -93,6 +93,8 @@
         description: GitHub Actions publishing token
         scopes:
           - api
+        repositories:
+          - python-local
         expires_in_days: 90
         state: present
       register: ci_token
