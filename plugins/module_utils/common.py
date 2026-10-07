@@ -125,6 +125,20 @@ def user_by_identifier(client, identifier, service_account=False):
     return matches[0] if matches else None
 
 
+def users_by_username(client, username):
+    """Return all /users rows, people and service accounts, whose username is exactly `username`."""
+    items = client.paginate("/users", params={"search": username})
+    return [item for item in items if item.get("username") == username]
+
+
+def user_by_username(client, username):
+    """Return the single non-service-account user with this exact username, or None."""
+    matches = [item for item in users_by_username(client, username) if not item.get("is_service_account")]
+    if len(matches) > 1:
+        raise ArtifactKeeperError("multiple users returned with username '%s'" % username)
+    return matches[0] if matches else None
+
+
 def principal_by_identifier(client, principal_type, identifier):
     if principal_type == "group":
         return group_by_name(client, identifier)
