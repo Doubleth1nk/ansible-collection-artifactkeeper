@@ -400,3 +400,81 @@
         token: "{{ artifactkeeper_test_token }}"
         repository: "{{ artifactkeeper_test_label_repository }}"
         labels: {}
+
+# Changes the scan configuration of an existing disposable repository, so it only
+# runs when one is named explicitly. The settings are reset to the Artifact Keeper
+# defaults at the end of the block, which restores default behavior; the stored
+# configuration itself cannot be removed because the API has no delete endpoint.
+- name: Exercise repository scan configuration lifecycle
+  when: artifactkeeper_test_scan_repository is defined
+  block:
+    - name: Read the scan configuration
+      artifactkeeper.core.repository_scan_config:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_scan_repository }}"
+      register: artifactkeeper_scan_read
+
+    - name: Start from the Artifact Keeper defaults
+      artifactkeeper.core.repository_scan_config:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_scan_repository }}"
+        scan_enabled: false
+        block_on_policy_violation: false
+        severity_threshold: high
+
+    - name: Predict a scan configuration change in check mode
+      artifactkeeper.core.repository_scan_config:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_scan_repository }}"
+        scan_enabled: true
+        severity_threshold: critical
+      check_mode: true
+      register: artifactkeeper_scan_check
+
+    - name: Enable scanning with a critical threshold
+      artifactkeeper.core.repository_scan_config:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_scan_repository }}"
+        scan_enabled: true
+        severity_threshold: critical
+      register: artifactkeeper_scan_set
+
+    - name: Apply the same scan configuration again
+      artifactkeeper.core.repository_scan_config:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_scan_repository }}"
+        scan_enabled: true
+        severity_threshold: critical
+      register: artifactkeeper_scan_repeat
+
+    - name: Validate repository scan configuration results
+      ansible.builtin.assert:
+        that:
+          - artifactkeeper_scan_read is not changed
+          - artifactkeeper_scan_read.changed_fields == []
+          - artifactkeeper_scan_check is changed
+          - artifactkeeper_scan_check.changed_fields == ['scan_enabled', 'severity_threshold']
+          - artifactkeeper_scan_check.configured
+          - artifactkeeper_scan_set is changed
+          - artifactkeeper_scan_set.configured
+          - artifactkeeper_scan_set.scan_config.scan_enabled
+          - artifactkeeper_scan_set.scan_config.severity_threshold == 'critical'
+          - artifactkeeper_scan_repeat is not changed
+
+  always:
+    - name: Reset the scan configuration to the Artifact Keeper defaults
+      artifactkeeper.core.repository_scan_config:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_scan_repository }}"
+        scan_enabled: false
+        scan_on_upload: false
+        scan_on_proxy: false
+        block_on_policy_violation: false
+        severity_threshold: high
+        proxy_scan_action: fail_open

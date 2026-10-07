@@ -84,6 +84,15 @@
           tier: gold
           team: core
 
+    - name: Scan proxied PyPI packages and fail closed
+      artifactkeeper.core.repository_scan_config:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        repository: pypi-remote
+        scan_enabled: true
+        scan_on_proxy: true
+        proxy_scan_action: fail_closed
+
     - name: Create automation service account
       artifactkeeper.core.service_account:
         api_url: "{{ artifactkeeper_api_url }}"
