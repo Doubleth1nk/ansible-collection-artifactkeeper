@@ -39,5 +39,5 @@ options:
     default: 30
 notes:
   - "Exactly one authentication mode must be supplied: O(token), or O(username) plus O(password)."
-  - The Artifact Keeper 1.10.1 OpenAPI specification does not define an X-API-Key management authentication scheme, so this collection does not invent one.
+  - The Artifact Keeper OpenAPI specification does not define an X-API-Key management authentication scheme, so this collection does not invent one.
 '''
