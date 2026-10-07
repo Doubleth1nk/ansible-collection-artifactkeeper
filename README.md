@@ -105,6 +105,8 @@ Certificate verification is enabled by default. For an internal CA, prefer `ca_p
 | `artifactkeeper.core.project_member` | Idempotently upsert/remove project grants for users, groups, or service accounts |
 | `artifactkeeper.core.virtual_repository_members` | Replace the complete desired virtual member set, including priorities |
 | `artifactkeeper.core.group_info` | Read-only exact/all group lookup |
+| `artifactkeeper.core.repository_info` | Read-only exact or filtered repository lookup |
+| `artifactkeeper.core.repository_permission` | Idempotently create/update/remove repository grants for users, groups, or service accounts |
 
 All stateful modules support check mode. Modules with meaningful before/after state emit diff output when Ansible diff mode is enabled; secret fields are excluded from diffs.
 
@@ -232,6 +234,35 @@ The supplied list is the complete desired state. Removed members are removed and
   register: engineers
 ```
 
+### Repository permission
+
+```yaml
+- artifactkeeper.core.repository_permission:
+    api_url: https://artifacts.example.com
+    token: "{{ artifactkeeper_token }}"
+    repository: python-local
+    principal_type: group
+    principal: engineers
+    actions: [read, write]
+    state: present
+```
+
+The grant is identified by repository, principal type, and principal; `actions` is the complete desired set. Grants on projects are managed by `project_member`. If more than one matching permission row exists, the module fails instead of choosing one.
+
+### Repository lookup
+
+```yaml
+- artifactkeeper.core.repository_info:
+    api_url: https://artifacts.example.com
+    token: "{{ artifactkeeper_token }}"
+    format: pypi
+    repo_type: remote
+    project: engineering
+  register: engineering_pypi_remotes
+```
+
+Use `key` for an exact lookup, or any combination of `format`, `repo_type`, `search`, and `project` to filter the listing. The module is read-only and always reports `changed: false`.
+
 ## Idempotency model
 
 Stateful modules follow the same pattern:
@@ -244,7 +275,7 @@ Stateful modules follow the same pattern:
 
 Write-only secrets are treated specially: the collection never fabricates an equality comparison for data the API does not return. Remote repositories also support the current AWS ECR and AWS CodeArtifact upstream-auth configuration; provider settings are sent to Artifact Keeper while AWS credentials remain a server-side concern.
 
-A complete playbook exercising all eight modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
+A complete playbook exercising all ten modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
 
 ## Development and testing
 

@@ -2,7 +2,7 @@
 
 The `artifactkeeper_smoke` ansible-test target is deliberately marked destructive/live because it requires a real Artifact Keeper instance. It is not part of normal PR unit/sanity CI.
 
-Example from a correctly installed collection checkout:
+Example from a correctly installed collection checkout (add `artifactkeeper_test_permission_repository=<key> artifactkeeper_test_permission_group=<name>` to also exercise a repository grant on a disposable repository and group):
 
 ```bash
 ansible-test integration artifactkeeper_smoke \

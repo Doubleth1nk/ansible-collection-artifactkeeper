@@ -32,3 +32,71 @@
     that:
       - artifactkeeper_groups.changed is false
       - artifactkeeper_groups.groups is iterable
+
+- name: Verify read-only repository lookup
+  artifactkeeper.core.repository_info:
+    api_url: "{{ artifactkeeper_test_url }}"
+    token: "{{ artifactkeeper_test_token }}"
+  register: artifactkeeper_repositories
+
+- name: Validate repository-info structured result
+  ansible.builtin.assert:
+    that:
+      - artifactkeeper_repositories.changed is false
+      - artifactkeeper_repositories.repositories is iterable
+      - artifactkeeper_repositories.repository is none
+
+# Writes a grant, so it only runs when a disposable repository and group are
+# named explicitly; the grant is removed again at the end of the block.
+- name: Exercise repository permission lifecycle
+  when:
+    - artifactkeeper_test_permission_repository is defined
+    - artifactkeeper_test_permission_group is defined
+  block:
+    - name: Grant read access
+      artifactkeeper.core.repository_permission:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_permission_repository }}"
+        principal_type: group
+        principal: "{{ artifactkeeper_test_permission_group }}"
+        actions: [read]
+      register: artifactkeeper_grant_create
+
+    - name: Grant read access again
+      artifactkeeper.core.repository_permission:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_permission_repository }}"
+        principal_type: group
+        principal: "{{ artifactkeeper_test_permission_group }}"
+        actions: [read]
+      register: artifactkeeper_grant_repeat
+
+    - name: Change granted actions
+      artifactkeeper.core.repository_permission:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_permission_repository }}"
+        principal_type: group
+        principal: "{{ artifactkeeper_test_permission_group }}"
+        actions: [write, read]
+      register: artifactkeeper_grant_update
+
+    - name: Validate grant lifecycle results
+      ansible.builtin.assert:
+        that:
+          - artifactkeeper_grant_create is changed
+          - artifactkeeper_grant_repeat is not changed
+          - artifactkeeper_grant_update is changed
+          - artifactkeeper_grant_update.permission.actions | sort == ['read', 'write']
+
+  always:
+    - name: Remove the grant
+      artifactkeeper.core.repository_permission:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_permission_repository }}"
+        principal_type: group
+        principal: "{{ artifactkeeper_test_permission_group }}"
+        state: absent
