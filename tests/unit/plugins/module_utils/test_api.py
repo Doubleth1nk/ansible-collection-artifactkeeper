@@ -171,3 +171,43 @@ def test_request_payload_secret_is_redacted_from_plaintext_error():
 
     assert "super-upstream-secret" not in str(exc.value)
     assert "VALUE_SPECIFIED_IN_NO_LOG_PARAMETER" in str(exc.value)
+
+
+@pytest.mark.parametrize("field", ["new_password", "current_password", "generated_password", "temporary_password"])
+def test_password_schema_fields_are_redacted_from_json_error(field):
+    # No "message" key, so the whole JSON body becomes the error text.
+    opener = QueueOpener([http_error(422, {"field": field, field: "pw-value-123"})])
+    client = ArtifactKeeperClient("https://ak.example", token="t", opener=opener)
+
+    with pytest.raises(ArtifactKeeperHTTPError) as exc:
+        client.get("/users")
+
+    assert "pw-value-123" not in str(exc.value)
+
+
+def test_change_password_payload_is_redacted_from_plaintext_error():
+    body = b"password new-secret-pw rejected; current old-secret-pw"
+    error = HTTPError("https://ak/api/v1/users/u1/password", 422, "unprocessable", {}, io.BytesIO(body))
+    opener = QueueOpener([error])
+    client = ArtifactKeeperClient("https://ak", token="admin-token", opener=opener)
+
+    with pytest.raises(ArtifactKeeperHTTPError) as exc:
+        client.post(
+            "/users/u1/password",
+            data={"new_password": "new-secret-pw", "current_password": "old-secret-pw"},
+        )
+
+    assert "new-secret-pw" not in str(exc.value)
+    assert "old-secret-pw" not in str(exc.value)
+
+
+def test_unexpected_status_create_user_response_redacts_generated_password():
+    payload = {"user": {"id": "u1", "username": "alice"}, "generated_password": "gen-secret-pw"}
+    opener = QueueOpener([Response(201, payload)])
+    client = ArtifactKeeperClient("https://ak", token="admin-token", opener=opener)
+
+    with pytest.raises(ArtifactKeeperHTTPError) as exc:
+        client.post("/users", data={"username": "alice", "email": "a@example.com"}, expected=(200,))
+
+    assert "gen-secret-pw" not in str(exc.value)
+    assert "alice" in str(exc.value)
