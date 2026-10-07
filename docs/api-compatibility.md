@@ -1,6 +1,6 @@
 # Artifact Keeper API compatibility
 
-The current `artifactkeeper.core` source targets the Artifact Keeper API **1.10.2** contract. The 0.2.0 collection release was implemented against the 1.10.1 OpenAPI contract and backend behavior reviewed on 2026-10-03.
+`artifactkeeper.core` 0.3.0 (the current source) targets the Artifact Keeper API **1.10.2** contract. The 0.2.0 collection release was implemented against the 1.10.1 OpenAPI contract and backend behavior reviewed on 2026-10-03.
 
 The current API, not an older playbook or role, is authoritative for endpoint paths, schemas, authentication, status codes, and mutation semantics. The implementation intentionally keeps API-specific behavior in `plugins/module_utils/api.py` and resource normalization/reconciliation in the modules.
 
@@ -120,4 +120,4 @@ The API's virtual-members `PUT` operation replaces the complete member set. `art
 
 ## Compatibility policy
 
-The current collection source claims compatibility with the Artifact Keeper 1.10.2 contract reviewed above; the 0.2.0 release claimed compatibility with 1.10.1. No older Artifact Keeper release range is claimed until integration coverage establishes one. Future collection releases should re-review the current `artifact-keeper/artifact-keeper-api` OpenAPI contract and backend implementation before changing behavior.
+Collection 0.3.0 claims compatibility with the Artifact Keeper 1.10.2 contract reviewed above; the 0.2.0 release claimed compatibility with 1.10.1. No older Artifact Keeper release range is claimed until integration coverage establishes one. Future collection releases should re-review the current `artifact-keeper/artifact-keeper-api` OpenAPI contract and backend implementation before changing behavior.

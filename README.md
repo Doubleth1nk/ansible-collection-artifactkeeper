@@ -6,7 +6,7 @@ The collection manages projects, repositories (including repository age-gate pol
 
 ## API baseline
 
-The current collection source targets the **Artifact Keeper API 1.10.2 contract**. The 0.2.0 collection release was implemented against Artifact Keeper 1.10.1. All endpoints the collection currently uses remain compatible between 1.10.1 and 1.10.2, except that token-creation request validation became stricter in 1.10.2; the payload sent by `service_account_token` already complies. No older Artifact Keeper version range is claimed until integration coverage establishes one. See [docs/api-compatibility.md](docs/api-compatibility.md) for the API decisions that shape module behavior. The API evolves quickly, so CI and future collection releases should continue to validate against the current specification.
+Collection 0.3.0 (the current source) targets the **Artifact Keeper API 1.10.2 contract**. The 0.2.0 collection release was implemented against Artifact Keeper 1.10.1. All endpoints the collection currently uses remain compatible between 1.10.1 and 1.10.2, except that token-creation request validation became stricter in 1.10.2; the payload sent by `service_account_token` already complies. No older Artifact Keeper version range is claimed until integration coverage establishes one. See [docs/api-compatibility.md](docs/api-compatibility.md) for the API decisions that shape module behavior. The API evolves quickly, so CI and future collection releases should continue to validate against the current specification.
 
 The current OpenAPI contract defines Bearer authentication for management endpoints. It does **not** define an `X-API-Key` management security scheme, even though an older/current repository README may mention that header. This collection follows the OpenAPI/backend contract and therefore does not expose an `api_key` parameter.
 
@@ -105,7 +105,7 @@ Certificate verification is enabled by default. For an internal CA, prefer `ca_p
 | `artifactkeeper.core.project_info` | Read-only exact/all project lookup |
 | `artifactkeeper.core.repository` | Manage repository properties, upstream auth, and optional age-gate policy |
 | `artifactkeeper.core.service_account` | Manage service-account lifecycle and active/display state |
-| `artifactkeeper.core.service_account_token` | Create/revoke named service-account tokens; plaintext returned only on creation |
+| `artifactkeeper.core.service_account_token` | Create/revoke named service-account tokens, optionally restricted to repositories; plaintext returned only on creation |
 | `artifactkeeper.core.project_member` | Idempotently upsert/remove project grants for users, groups, or service accounts |
 | `artifactkeeper.core.virtual_repository_members` | Replace the complete desired virtual member set, including priorities |
 | `artifactkeeper.core.group` | Create/update/delete local groups by exact name and manage membership (`exact`, `append`, `remove`) |
