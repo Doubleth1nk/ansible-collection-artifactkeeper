@@ -56,6 +56,20 @@ The contract gives no enumeration for `actions`, so action names are passed thro
 
 `artifactkeeper.core.repository_info` uses `GET /repositories/{key}` for exact lookups and the paginated `GET /repositories` listing otherwise. The listing's `project` filter is typed as a project UUID, so the module resolves the supplied project key first. The module-facing `repo_type` and `search` options map to the API's `type` and `q` query parameters.
 
+## Users
+
+`artifactkeeper.core.user` identifies a user by its exact `username`. Lookups list `/users?search=<username>` and keep only rows whose `username` equals the input exactly, so an email address never matches. Service accounts are rows in `/users` as well; normal user lookups exclude rows with `is_service_account: true`. Creating a user whose username belongs to a service account fails with a pointer to `artifactkeeper.core.service_account`. More than one matching user fails instead of choosing one.
+
+`UpdateUserRequest` has no username field, so usernames are immutable. The module never renames a user or recreates it under a new name. `CreateUserRequest` requires `email` and has no `is_active`, so `email` is required only on creation, and `is_active: false` on creation is applied with a follow-up `PATCH`. In `UpdateUserRequest`, `null` means unchanged, so `display_name` cannot be cleared once set. Managed fields are compared exactly as Artifact Keeper returns them, with no case folding.
+
+`CreateUserRequest.password` is the only password operation the module uses. It is sent only when the user is created and is never compared, because no password material is returned. For an existing user, a supplied `password` is ignored with a warning. When no password is supplied, `CreateUserResponse.generated_password` may contain a server-generated password. The module returns it once as `generated_password`, so tasks should use `no_log: true`.
+
+Changing or resetting the password of an existing user is intentionally out of scope. `POST /users/{id}/password` documents 401 (current password incorrect) and 403 (cannot change other users' passwords) responses. The contract does not state that an administrator can set another user's password through it, and `POST /users/{id}/password/reset` is a separate administrator operation that returns a temporary password and sets `must_change_password`. These need a dedicated, separately analysed module.
+
+The client redacts the password fields of these schemas (`new_password`, `current_password`, `generated_password`, `temporary_password`) from API error text, alongside the existing credential keys.
+
+`artifactkeeper.core.user_info` exposes the `search` query parameter. Its `is_admin`, `is_active`, and service-account filters are applied client-side to the returned rows, because the contract does not document how boolean query parameters are serialized.
+
 ## Virtual repository members
 
 The API's virtual-members `PUT` operation replaces the complete member set. `artifactkeeper.core.virtual_repository_members` therefore treats `members` as desired state: omitted existing members are removed, missing members are added, and priority changes are applied.
