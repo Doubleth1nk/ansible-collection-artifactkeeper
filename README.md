@@ -193,12 +193,14 @@ Artifact Keeper creates usernames with a `svc-` prefix. The create schema calls 
     scopes:
       - read
       - write
+    repositories:
+      - python-local
     expires_in_days: 90
   no_log: true
   register: ci_token
 ```
 
-The plaintext `token` return value exists only when the server mints a token. Store it immediately using your own secret-management workflow. Artifact Keeper's token-list response does not reveal plaintext and does not return the creation-time description; this collection does not falsely claim those values can be re-verified later. Scope changes rotate the named token because the current API has no token-update endpoint.
+The plaintext `token` return value exists only when the server mints a token. Store it immediately using your own secret-management workflow. Artifact Keeper's token-list response does not reveal plaintext and does not return the creation-time description; this collection does not falsely claim those values can be re-verified later. `repositories` (repository keys) or `repo_selector` restricts the token to repositories; when neither is supplied, the restriction is left unmanaged. Scope or managed restriction changes rotate the named token, because the API has no token-update endpoint: the replacement is created first and the old token is revoked afterwards. See [docs/api-compatibility.md](docs/api-compatibility.md#service-account-tokens) for the restriction rules.
 
 ### Project member
 
