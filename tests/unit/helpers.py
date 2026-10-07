@@ -20,6 +20,10 @@ class FakeModule:
         self.params = params
         self.check_mode = check_mode
         self._diff = diff
+        self.warnings = []
+
+    def warn(self, warning):
+        self.warnings.append(warning)
 
     def exit_json(self, **kwargs):
         raise ModuleExit(kwargs)
