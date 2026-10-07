@@ -284,3 +284,66 @@
         token: "{{ artifactkeeper_test_token }}"
         name: "{{ artifactkeeper_test_group_name }}"
         state: absent
+
+# Creates a service-account token, so it only runs when an existing disposable
+# service account and repository are named explicitly; the token is revoked
+# again at the end of the block.
+- name: Exercise repository-restricted service-account token lifecycle
+  when:
+    - artifactkeeper_test_token_service_account is defined
+    - artifactkeeper_test_token_repository is defined
+  block:
+    - name: Create a token restricted to the repository
+      artifactkeeper.core.service_account_token:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        service_account: "{{ artifactkeeper_test_token_service_account }}"
+        name: ansible-smoke-scoped
+        scopes: [read]
+        repositories:
+          - "{{ artifactkeeper_test_token_repository }}"
+      register: artifactkeeper_scoped_token_create
+      no_log: true
+
+    - name: Create the restricted token again
+      artifactkeeper.core.service_account_token:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        service_account: "{{ artifactkeeper_test_token_service_account }}"
+        name: ansible-smoke-scoped
+        scopes: [read]
+        repositories:
+          - "{{ artifactkeeper_test_token_repository }}"
+      register: artifactkeeper_scoped_token_repeat
+      no_log: true
+
+    - name: Switch the token to a repository selector
+      artifactkeeper.core.service_account_token:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        service_account: "{{ artifactkeeper_test_token_service_account }}"
+        name: ansible-smoke-scoped
+        scopes: [read]
+        repo_selector:
+          match_pattern: "{{ artifactkeeper_test_token_repository }}"
+      register: artifactkeeper_scoped_token_rotate
+      no_log: true
+
+    - name: Validate restricted token lifecycle results
+      ansible.builtin.assert:
+        that:
+          - artifactkeeper_scoped_token_create is changed
+          - artifactkeeper_scoped_token_create.token_info.repository_ids | length == 1
+          - artifactkeeper_scoped_token_repeat is not changed
+          - artifactkeeper_scoped_token_rotate is changed
+          - artifactkeeper_scoped_token_rotate.changed_fields == ['repo_selector']
+          - artifactkeeper_scoped_token_rotate.token_info.repository_ids == []
+
+  always:
+    - name: Revoke the restricted token
+      artifactkeeper.core.service_account_token:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        service_account: "{{ artifactkeeper_test_token_service_account }}"
+        name: ansible-smoke-scoped
+        state: absent
