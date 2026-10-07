@@ -98,6 +98,14 @@
       register: ci_token
       no_log: true
 
+    - name: Create engineers group
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        name: engineers
+        description: Engineering team
+        state: present
+
     - name: Grant engineers access to the project
       artifactkeeper.core.project_member:
         api_url: "{{ artifactkeeper_api_url }}"
@@ -166,3 +174,12 @@
         is_admin: true
         is_active: true
       register: active_admins
+
+    - name: Add alice to the engineers group without removing other members
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        name: engineers
+        members:
+          - alice
+        members_mode: append

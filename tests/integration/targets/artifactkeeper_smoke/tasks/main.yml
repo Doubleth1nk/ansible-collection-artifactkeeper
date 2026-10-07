@@ -173,3 +173,114 @@
         token: "{{ artifactkeeper_test_token }}"
         username: "{{ artifactkeeper_test_user_username }}"
         state: absent
+
+# Creates a group, so it only runs when a disposable group name and an existing
+# disposable member username are named explicitly; the group is deleted again
+# at the end of the block.
+- name: Exercise group lifecycle
+  when:
+    - artifactkeeper_test_group_name is defined
+    - artifactkeeper_test_group_member is defined
+  block:
+    - name: Create group with an exact membership
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+        description: Ansible smoke test
+        members:
+          - "{{ artifactkeeper_test_group_member }}"
+      register: artifactkeeper_group_create
+
+    - name: Create group again
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+        description: Ansible smoke test
+        members:
+          - "{{ artifactkeeper_test_group_member }}"
+      register: artifactkeeper_group_repeat
+
+    - name: Append an existing member
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+        members:
+          - "{{ artifactkeeper_test_group_member }}"
+        members_mode: append
+      register: artifactkeeper_group_append
+
+    - name: Look up the group
+      artifactkeeper.core.group_info:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+      register: artifactkeeper_group_lookup
+
+    - name: Update the description
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+        description: Ansible smoke test (updated)
+      register: artifactkeeper_group_description
+
+    - name: Remove the member
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+        members:
+          - "{{ artifactkeeper_test_group_member }}"
+        members_mode: remove
+      register: artifactkeeper_group_remove
+
+    - name: Require an empty membership
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+        members: []
+      register: artifactkeeper_group_empty
+
+    - name: Delete the group in check mode
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+        state: absent
+      check_mode: true
+      register: artifactkeeper_group_check_delete
+
+    - name: Confirm the group still exists after the check-mode delete
+      artifactkeeper.core.group_info:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+      register: artifactkeeper_group_after_check
+
+    - name: Validate group lifecycle results
+      ansible.builtin.assert:
+        that:
+          - artifactkeeper_group_create is changed
+          - artifactkeeper_group_create.members == [artifactkeeper_test_group_member]
+          - artifactkeeper_group_repeat is not changed
+          - artifactkeeper_group_append is not changed
+          - artifactkeeper_group_lookup.group.member_count == 1
+          - artifactkeeper_group_description is changed
+          - artifactkeeper_group_description.changed_fields == ['description']
+          - artifactkeeper_group_remove is changed
+          - artifactkeeper_group_remove.members == []
+          - artifactkeeper_group_empty is not changed
+          - artifactkeeper_group_check_delete is changed
+          - artifactkeeper_group_after_check.group is not none
+
+  always:
+    - name: Delete the group
+      artifactkeeper.core.group:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: "{{ artifactkeeper_test_group_name }}"
+        state: absent

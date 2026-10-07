@@ -51,7 +51,7 @@ There are three layers. New modules must reuse the bottom two rather than reimpl
 - **`plugins/module_utils/common.py`**:
   - `make_module()` merges the shared connection argspec. It always sets `supports_check_mode=True` and enforces `token` XOR `username`+`password`.
   - `client_from_module()` and `fail_from_exception()`
-  - Name→object lookups (`project_by_key`, `repository_by_key`, `service_account_by_name`, `group_by_name`, `user_by_identifier`, `principal_by_identifier`, and exact-username `users_by_username` / `user_by_username`; the latter excludes service accounts)
+  - Name→object lookups (`project_by_key`, `repository_by_key`, `service_account_by_name`, `group_by_name`, `user_by_identifier`, `principal_by_identifier`, and exact-username `users_by_username` / `user_by_username`; the latter excludes service accounts), plus `group_members` for paging through a group's members
   - `managed_diff()` / `safe_diff()`
 - **`plugins/doc_fragments/artifactkeeper.py`**: shared connection-option docs. Modules use `extends_documentation_fragment: artifactkeeper.core.artifactkeeper`.
 

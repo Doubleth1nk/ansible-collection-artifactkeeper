@@ -110,6 +110,21 @@ def group_by_name(client, name):
     return matches[0] if matches else None
 
 
+def group_members(client, group_id, page_size=200):
+    """Return every GroupMemberResponse of a group, following member_offset paging."""
+    members = []
+    offset = 0
+    for dummy in range(10000):
+        detail = client.get("/groups/%s" % q(group_id), params={"member_limit": page_size, "member_offset": offset}) or {}
+        page = detail.get("members") or []
+        members.extend(page)
+        offset += len(page)
+        total = detail.get("members_total")
+        if not page or (total is not None and offset >= total):
+            return members
+    raise ArtifactKeeperError("group member pagination exceeded 10000 pages; refusing an unbounded loop")
+
+
 def user_by_identifier(client, identifier, service_account=False):
     items = client.paginate(
         "/users",
