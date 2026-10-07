@@ -82,6 +82,7 @@ These are non-obvious; see `docs/api-compatibility.md`.
 - **`age_gate`** is a nested option of `repository` but uses the dedicated `/repositories/{key}/age-gate` endpoint. If the option is omitted, the policy stays unmanaged; `enabled: false` disables it explicitly.
 - **Service accounts:** the server prefixes usernames with `svc-`. The module accepts either form. Its `description` param maps to `description` on create and to `display_name` on read and update.
 - `virtual_repository_members` treats `members` as the complete desired set because the API `PUT` replaces the whole set.
+- `repository_labels`: `labels_mode: exact` sends one atomic `PUT`, and `labels` has no default, so omitting it never clears labels (`labels: {}` is the explicit clear). `merge` sends upsert `POST`s then `DELETE`s in sorted key order and is not atomic. Keys and values are validated locally because the server only enforces them as database constraints.
 - `project_member` resolves names to UUIDs and reads the existing grant before the API's upsert.
 
 ## Conventions
