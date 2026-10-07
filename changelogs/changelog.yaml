@@ -1,0 +1,41 @@
+ancestor: null
+releases:
+  0.1.0:
+    changes:
+      minor_changes:
+      - Add a shared Artifact Keeper API client using ``ansible.module_utils.urls``.
+      - Add idempotent project, project-info, repository, service-account, service-account-token,
+        project-member, virtual-repository-members, and group-info modules; repository
+        age-gate policy is managed as nested repository configuration.
+      - Add unit-test, sanity-test, lint, release, changelog, and integration-test
+        scaffolding.
+      release_summary: Initial development release.
+    fragments:
+    - 0.1.0.yml
+    release_date: '2026-10-04'
+  0.2.0:
+    changes:
+      release_summary: Adds user management and repository-level access control. New
+        modules manage local users and direct repository permission grants, and look
+        up users and repositories. Password-related values are now redacted from API
+        error messages.
+      security_fixes:
+      - Redact ``new_password``, ``current_password``, ``generated_password``, and
+        ``temporary_password`` values from Artifact Keeper API error messages.
+    fragments:
+    - 0.2.0.yml
+    - user-management.yml
+    modules:
+    - description: Gather Artifact Keeper repository information
+      name: repository_info
+      namespace: ''
+    - description: Manage Artifact Keeper repository permission grants
+      name: repository_permission
+      namespace: ''
+    - description: Manage Artifact Keeper users
+      name: user
+      namespace: ''
+    - description: Gather Artifact Keeper user information
+      name: user_info
+      namespace: ''
+    release_date: '2026-10-07'

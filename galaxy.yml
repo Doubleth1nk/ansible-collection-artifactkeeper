@@ -1,14 +1,14 @@
 ---
 namespace: artifactkeeper
 name: core
-version: 0.1.0
+version: 0.2.0
 readme: README.md
 authors:
   - Tuxthepirate (@Doubleth1nk)
 description: >-
   Idempotent Ansible modules for managing Artifact Keeper projects,
   repositories and repository policy, service accounts, tokens,
-  project grants, and virtual members.
+  users, project and repository permission grants, and virtual members.
 license:
   - GPL-3.0-or-later
 tags:
@@ -31,3 +31,6 @@ build_ignore:
   - dist
   - '*.tar.gz'
   - '*.zip'
+  - 'artifact-keeper-*-openapi.json'
+  - CLAUDE.md
+  - changelogs/.plugin-cache.yaml

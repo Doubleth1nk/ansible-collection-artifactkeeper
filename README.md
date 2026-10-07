@@ -2,13 +2,13 @@
 
 `artifactkeeper.core` is an open-source Ansible collection for managing [Artifact Keeper](https://artifactkeeper.com/), the self-hosted artifact registry. It provides normal idempotent Ansible modules instead of requiring playbooks to hand-roll REST calls.
 
-The initial collection manages projects, repositories (including repository age-gate policy), service accounts and their tokens, project grants, complete virtual-repository member sets, and read-only project/group lookups.
+The collection manages projects, repositories (including repository age-gate policy), service accounts and their tokens, users, project and repository permission grants, and complete virtual-repository member sets, with read-only lookups for projects, repositories, users, and groups.
 
 ## API baseline
 
-Version 0.1.0 is implemented against the **Artifact Keeper API 1.10.1 OpenAPI contract** as published by `artifact-keeper/artifact-keeper-api` on 2026-10-03. No older Artifact Keeper version range is claimed until integration coverage establishes one. See [docs/api-compatibility.md](docs/api-compatibility.md) for the API decisions that shape module behavior. The API evolves quickly, so CI and future collection releases should continue to validate against the current specification.
+Version 0.2.0 is implemented against the **Artifact Keeper API 1.10.1 OpenAPI contract** as published by `artifact-keeper/artifact-keeper-api` on 2026-10-03. No older Artifact Keeper version range is claimed until integration coverage establishes one. See [docs/api-compatibility.md](docs/api-compatibility.md) for the API decisions that shape module behavior. The API evolves quickly, so CI and future collection releases should continue to validate against the current specification.
 
-The current OpenAPI contract defines Bearer authentication for management endpoints. It does **not** define an `X-API-Key` management security scheme, even though an older/current repository README may mention that header. This collection follows the OpenAPI/backend contract and therefore does not expose an `api_key` parameter in 0.1.0.
+The current OpenAPI contract defines Bearer authentication for management endpoints. It does **not** define an `X-API-Key` management security scheme, even though an older/current repository README may mention that header. This collection follows the OpenAPI/backend contract and therefore does not expose an `api_key` parameter.
 
 ## Requirements
 
@@ -78,7 +78,7 @@ The shared client calls `/api/v1/auth/login`, receives the JWT, and uses it as a
     state: present
 ```
 
-Credentials are declared with `no_log=True` in module argument specifications. For tasks that can return newly minted service-account token material, also use task-level `no_log: true`.
+Credentials are declared with `no_log=True` in module argument specifications. For tasks that can return newly minted secrets, such as service-account tokens or a server-generated user password (`generated_password`), also use task-level `no_log: true`.
 
 ## TLS
 
@@ -331,8 +331,8 @@ This collection uses semantic versioning. Until 1.0, backwards-incompatible chan
 
 Release procedure:
 
-1. Add/aggregate changelog fragments.
-2. Update `galaxy.yml` version.
+1. Update `galaxy.yml` `version` and the `User-Agent` version in `plugins/module_utils/api.py`.
+2. Add a `release_summary` fragment and run `antsibull-changelog release --version X.Y.Z` to generate `CHANGELOG.rst` from `changelogs/fragments/`.
 3. Run all sanity/unit/lint checks.
 4. `ansible-galaxy collection build`.
 5. Install and inspect the built tarball locally.
