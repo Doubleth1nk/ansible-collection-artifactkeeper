@@ -104,6 +104,7 @@ Certificate verification is enabled by default. For an internal CA, prefer `ca_p
 | `artifactkeeper.core.service_account_token` | Create/revoke named service-account tokens; plaintext returned only on creation |
 | `artifactkeeper.core.project_member` | Idempotently upsert/remove project grants for users, groups, or service accounts |
 | `artifactkeeper.core.virtual_repository_members` | Replace the complete desired virtual member set, including priorities |
+| `artifactkeeper.core.group` | Create/update/delete local groups by exact name and manage membership (`exact`, `append`, `remove`) |
 | `artifactkeeper.core.group_info` | Read-only exact/all group lookup |
 | `artifactkeeper.core.repository_info` | Read-only exact or filtered repository lookup |
 | `artifactkeeper.core.repository_permission` | Idempotently create/update/remove repository grants for users, groups, or service accounts |
@@ -226,6 +227,23 @@ The module resolves project/group/user/service-account identifiers to UUIDs and 
 
 The supplied list is the complete desired state. Removed members are removed and priority changes are detected.
 
+### Group
+
+```yaml
+- artifactkeeper.core.group:
+    api_url: https://artifacts.example.com
+    token: "{{ artifactkeeper_token }}"
+    name: engineers
+    description: Engineering team
+    members:
+      - alice
+      - bob
+      - svc-ci
+    members_mode: exact
+```
+
+The group is identified by its exact `name` and is never renamed or recreated. `description` is managed when supplied. When `members` is omitted, membership is unmanaged. Otherwise `members_mode: exact` makes the list the complete membership, `append` only adds, and `remove` only removes listed members. Members are exact usernames; email addresses never match, and service accounts are given by their full `svc-` username. Changes are applied as the minimal set of additions and removals. Groups owned by an SSO provider (`external_source` is set) have read-only membership, so supplying `members` for them fails; their description can still be changed and they can be deleted.
+
 ### Group lookup
 
 ```yaml
@@ -306,7 +324,7 @@ Stateful modules follow the same pattern:
 
 Write-only secrets are treated specially: the collection never fabricates an equality comparison for data the API does not return. Remote repositories also support the current AWS ECR and AWS CodeArtifact upstream-auth configuration; provider settings are sent to Artifact Keeper while AWS credentials remain a server-side concern.
 
-A complete playbook exercising all twelve modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
+A complete playbook exercising all thirteen modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
 
 ## Development and testing
 

@@ -70,6 +70,16 @@ The client redacts the password fields of these schemas (`new_password`, `curren
 
 `artifactkeeper.core.user_info` exposes the `search` query parameter. Its `is_admin`, `is_active`, and service-account filters are applied client-side to the returned rows, because the contract does not document how boolean query parameters are serialized.
 
+## Groups
+
+`artifactkeeper.core.group` identifies a group by its exact `name`, using `/groups?search=<name>` followed by exact matching. `POST /groups` returns HTTP 409 for an existing name, so the module always looks the group up first. `PUT /groups/{id}` takes the full `CreateGroupRequest`, in which `name` is required. The module only sends a PUT when `description` is supplied and differs, and always sends the current name back unchanged, so groups are never renamed and never deleted and recreated.
+
+Membership is changed through `POST` and `DELETE /groups/{id}/members`, each with a batch of `user_ids`. There is no full-set replacement. The module reads the current members, computes the minimal additions and removals for `members_mode` (`exact`, `append`, or `remove`), and sends at most one add and one remove request. Members are read from `GET /groups/{id}` with `member_limit=200` (the documented maximum), following `member_offset` until `members_total` is reached or a page is empty. After membership writes, the group summary is re-read with `member_limit=1`, so the returned `member_count` is current. `member_limit=0` is avoided because its runtime meaning is undocumented.
+
+Only usernames being added are resolved to user IDs, through exact username matching on `/users?search=`, so an email address never matches. Removals use the `user_id` values from the current membership. Service accounts are rows in `/users`, and the API describes the group member picker as using the listing that includes them, so the module accepts service accounts by their full `svc-` username.
+
+`external_source` identifies groups owned by an SSO provider (`oidc`, `saml`, or `ldap`). The API states that the identity provider owns their membership, so supplying `members` for such a group fails before anything is changed, even when the membership already matches. The API does not restrict their description or deletion, so both are allowed. An identity provider that maps groups may recreate a deleted group at the next login. `CreateGroupRequest` has no `external_source`, so the module only creates local groups.
+
 ## Virtual repository members
 
 The API's virtual-members `PUT` operation replaces the complete member set. `artifactkeeper.core.virtual_repository_members` therefore treats `members` as desired state: omitted existing members are removed, missing members are added, and priority changes are applied.
