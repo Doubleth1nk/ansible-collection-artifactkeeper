@@ -147,3 +147,22 @@
         token: "{{ artifactkeeper_token }}"
         name: engineers
       register: engineers_group
+
+    - name: Create a local user with an initial password
+      artifactkeeper.core.user:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        username: alice
+        email: alice@example.com
+        display_name: Alice
+        password: "{{ lookup('env', 'ALICE_INITIAL_PASSWORD') }}"
+        state: present
+      no_log: true
+
+    - name: List active administrators
+      artifactkeeper.core.user_info:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        is_admin: true
+        is_active: true
+      register: active_admins

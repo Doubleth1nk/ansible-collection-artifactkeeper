@@ -100,3 +100,76 @@
         principal_type: group
         principal: "{{ artifactkeeper_test_permission_group }}"
         state: absent
+
+- name: Verify read-only user lookup
+  artifactkeeper.core.user_info:
+    api_url: "{{ artifactkeeper_test_url }}"
+    token: "{{ artifactkeeper_test_token }}"
+  register: artifactkeeper_users
+
+- name: Validate user-info structured result
+  ansible.builtin.assert:
+    that:
+      - artifactkeeper_users.changed is false
+      - artifactkeeper_users.users is iterable
+      - artifactkeeper_users.user is none
+      - artifactkeeper_users.users | selectattr('is_service_account') | list | length == 0
+
+# Creates a user, so it only runs when a disposable username and email are
+# named explicitly; the user is deleted again at the end of the block.
+- name: Exercise user lifecycle
+  when:
+    - artifactkeeper_test_user_username is defined
+    - artifactkeeper_test_user_email is defined
+  block:
+    - name: Create user
+      artifactkeeper.core.user:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        username: "{{ artifactkeeper_test_user_username }}"
+        email: "{{ artifactkeeper_test_user_email }}"
+        display_name: Ansible smoke test
+      register: artifactkeeper_user_create
+      no_log: true
+
+    - name: Create user again
+      artifactkeeper.core.user:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        username: "{{ artifactkeeper_test_user_username }}"
+        email: "{{ artifactkeeper_test_user_email }}"
+        display_name: Ansible smoke test
+      register: artifactkeeper_user_repeat
+
+    - name: Deactivate user
+      artifactkeeper.core.user:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        username: "{{ artifactkeeper_test_user_username }}"
+        is_active: false
+      register: artifactkeeper_user_deactivate
+
+    - name: Look up the user by exact username
+      artifactkeeper.core.user_info:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        username: "{{ artifactkeeper_test_user_username }}"
+      register: artifactkeeper_user_lookup
+
+    - name: Validate user lifecycle results
+      ansible.builtin.assert:
+        that:
+          - artifactkeeper_user_create is changed
+          - artifactkeeper_user_repeat is not changed
+          - artifactkeeper_user_deactivate is changed
+          - artifactkeeper_user_deactivate.changed_fields == ['is_active']
+          - artifactkeeper_user_lookup.user.username == artifactkeeper_test_user_username
+          - artifactkeeper_user_lookup.user.is_active is false
+
+  always:
+    - name: Delete user
+      artifactkeeper.core.user:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        username: "{{ artifactkeeper_test_user_username }}"
+        state: absent

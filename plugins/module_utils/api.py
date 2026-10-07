@@ -15,6 +15,10 @@ from ansible.module_utils.urls import open_url
 SENSITIVE_KEYS = {
     "authorization",
     "password",
+    "new_password",
+    "current_password",
+    "generated_password",
+    "temporary_password",
     "token",
     "access_token",
     "refresh_token",

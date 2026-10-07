@@ -107,6 +107,8 @@ Certificate verification is enabled by default. For an internal CA, prefer `ca_p
 | `artifactkeeper.core.group_info` | Read-only exact/all group lookup |
 | `artifactkeeper.core.repository_info` | Read-only exact or filtered repository lookup |
 | `artifactkeeper.core.repository_permission` | Idempotently create/update/remove repository grants for users, groups, or service accounts |
+| `artifactkeeper.core.user` | Create/update/delete users by exact username; password is create-only |
+| `artifactkeeper.core.user_info` | Read-only exact or filtered user lookup |
 
 All stateful modules support check mode. Modules with meaningful before/after state emit diff output when Ansible diff mode is enabled; secret fields are excluded from diffs.
 
@@ -263,6 +265,35 @@ The grant is identified by repository, principal type, and principal; `actions` 
 
 Use `key` for an exact lookup, or any combination of `format`, `repo_type`, `search`, and `project` to filter the listing. The module is read-only and always reports `changed: false`.
 
+### User
+
+```yaml
+- artifactkeeper.core.user:
+    api_url: https://artifacts.example.com
+    token: "{{ artifactkeeper_token }}"
+    username: alice
+    email: alice@example.com
+    display_name: Alice
+    password: "{{ alice_initial_password }}"
+    state: present
+  no_log: true
+```
+
+The user is identified by its exact `username`, which cannot be changed; an email address never matches it. Omitted optional fields are left unmanaged. `password` is only used when the user is created. For an existing user it is not sent or compared, and the module warns instead. Changing or resetting the password of an existing user is intentionally outside this module's scope. When `password` is omitted at creation, Artifact Keeper may generate one; it is returned once as `generated_password`, so use task-level `no_log: true`. Service accounts are managed by `service_account`.
+
+### User lookup
+
+```yaml
+- artifactkeeper.core.user_info:
+    api_url: https://artifacts.example.com
+    token: "{{ artifactkeeper_token }}"
+    is_admin: true
+    is_active: true
+  register: active_admins
+```
+
+Use `username` for an exact lookup or `search` for the server-side search. Service accounts are excluded unless `include_service_accounts: true`. The `is_admin`, `is_active`, and service-account filters are applied by the module to the returned users. The module is read-only and always reports `changed: false`.
+
 ## Idempotency model
 
 Stateful modules follow the same pattern:
@@ -275,7 +306,7 @@ Stateful modules follow the same pattern:
 
 Write-only secrets are treated specially: the collection never fabricates an equality comparison for data the API does not return. Remote repositories also support the current AWS ECR and AWS CodeArtifact upstream-auth configuration; provider settings are sent to Artifact Keeper while AWS credentials remain a server-side concern.
 
-A complete playbook exercising all ten modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
+A complete playbook exercising all twelve modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
 
 ## Development and testing
 
