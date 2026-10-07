@@ -112,6 +112,7 @@ Certificate verification is enabled by default. For an internal CA, prefer `ca_p
 | `artifactkeeper.core.group_info` | Read-only exact/all group lookup |
 | `artifactkeeper.core.repository_info` | Read-only exact or filtered repository lookup |
 | `artifactkeeper.core.repository_labels` | Manage repository labels as a complete set (`exact`) or by adding, updating, and removing individual labels (`merge`) |
+| `artifactkeeper.core.repository_scan_config` | Manage a repository's security scan settings; only supplied settings are managed |
 | `artifactkeeper.core.repository_permission` | Idempotently create/update/remove repository grants for users, groups, or service accounts |
 | `artifactkeeper.core.user` | Create/update/delete users by exact username; password is create-only |
 | `artifactkeeper.core.user_info` | Read-only exact or filtered user lookup |
@@ -290,6 +291,20 @@ The grant is identified by repository, principal type, and principal; `actions` 
 
 With the default `labels_mode: exact`, `labels` is the complete set and is applied in one atomic request; labels not listed are removed. `labels` is required in this mode, and removing every label takes the explicit `labels: {}`. With `labels_mode: merge`, the listed labels are added or updated, the keys in `remove_labels` are removed, and other labels are left alone; merge changes are separate requests applied in a fixed order and are not atomic. Keys are exact and case-sensitive, values are strings (use `""` for a key-only label), keys are at most 128 characters, and values at most 256.
 
+### Repository scan configuration
+
+```yaml
+- artifactkeeper.core.repository_scan_config:
+    api_url: https://artifacts.example.com
+    token: "{{ artifactkeeper_token }}"
+    repository: pypi-remote
+    scan_enabled: true
+    scan_on_proxy: true
+    proxy_scan_action: fail_closed
+```
+
+Only the supplied settings are managed; omitted settings are neither compared nor sent, and without any settings the module just returns the effective configuration. A repository that was never configured behaves as if every setting had its Artifact Keeper default (scanning off, `severity_threshold: high`, `proxy_scan_action: fail_open`), so a request for default values on such a repository changes nothing and `configured` stays `false`. Changing the configuration requires the repository `admin` action or an administrator account. Artifact Keeper cannot delete a stored scan configuration; setting the defaults restores default behavior.
+
 ### Repository lookup
 
 ```yaml
@@ -345,7 +360,7 @@ Stateful modules follow the same pattern:
 
 Write-only secrets are treated specially: the collection never fabricates an equality comparison for data the API does not return. Remote repositories also support the current AWS ECR and AWS CodeArtifact upstream-auth configuration; provider settings are sent to Artifact Keeper while AWS credentials remain a server-side concern.
 
-A complete playbook exercising all fourteen modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
+A complete playbook exercising all fifteen modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
 
 ## Development and testing
 
