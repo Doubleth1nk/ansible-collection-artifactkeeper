@@ -347,3 +347,56 @@
         service_account: "{{ artifactkeeper_test_token_service_account }}"
         name: ansible-smoke-scoped
         state: absent
+
+# Changes repository labels, so it only runs when an existing disposable
+# repository is named explicitly; its labels are cleared at the end of the block.
+- name: Exercise repository label lifecycle
+  when: artifactkeeper_test_label_repository is defined
+  block:
+    - name: Set the complete label set
+      artifactkeeper.core.repository_labels:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_label_repository }}"
+        labels:
+          tier: gold
+          team: core
+      register: artifactkeeper_labels_exact
+
+    - name: Set the same label set again
+      artifactkeeper.core.repository_labels:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_label_repository }}"
+        labels:
+          tier: gold
+          team: core
+      register: artifactkeeper_labels_repeat
+
+    - name: Merge one label and remove another
+      artifactkeeper.core.repository_labels:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_label_repository }}"
+        labels_mode: merge
+        labels:
+          owner: ci
+        remove_labels:
+          - team
+      register: artifactkeeper_labels_merge
+
+    - name: Validate repository label lifecycle results
+      ansible.builtin.assert:
+        that:
+          - artifactkeeper_labels_exact is changed
+          - artifactkeeper_labels_repeat is not changed
+          - artifactkeeper_labels_merge is changed
+          - "artifactkeeper_labels_merge.labels == {'owner': 'ci', 'tier': 'gold'}"
+
+  always:
+    - name: Remove every label again
+      artifactkeeper.core.repository_labels:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        repository: "{{ artifactkeeper_test_label_repository }}"
+        labels: {}
