@@ -114,6 +114,14 @@ Only usernames being added are resolved to user IDs, through exact username matc
 
 `external_source` identifies groups owned by an SSO provider (`oidc`, `saml`, or `ldap`). The API states that the identity provider owns their membership, so supplying `members` for such a group fails before anything is changed, even when the membership already matches. The API does not restrict their description or deletion, so both are allowed. An identity provider that maps groups may recreate a deleted group at the next login. `CreateGroupRequest` has no `external_source`, so the module only creates local groups.
 
+## Repository labels
+
+`artifactkeeper.core.repository_labels` manages `/api/v1/repositories/{key}/labels`. `GET` returns every label of the repository (unpaginated, ordered by key), so the module always compares against the complete current state. Keys are compared exactly and case-sensitively, and a missing `value` reads back as an empty string.
+
+With `labels_mode: exact`, the module sends one `PUT` with the full desired set; the server replaces the labels in a single transaction, so the change is atomic. `labels` must be supplied explicitly in this mode, so omitting it can never clear the labels; `labels: {}` is the explicit way to remove them all. With `labels_mode: merge`, the module computes the whole change set first, then sends `POST /labels/{label_key}` (an upsert) for each addition and update in key order, followed by `DELETE /labels/{label_key}` for each removal in key order. These requests are not atomic: if one fails, the earlier ones remain applied, and the next run re-reads the labels and sends only what is left. Merge mode never uses `PUT`, so labels added by others between the read and the write are not dropped.
+
+The server does not validate label requests; its `repository_labels` table limits keys to 128 and values to 256 characters and allows each key only once per repository, and violations surface as database errors. The module therefore rejects over-long keys or values, non-string values, and duplicate or overlapping keys before any request. It also rejects empty keys, which the table would accept but which cannot be addressed through the `{label_key}` path for merge updates or removals. Reads require visibility of the repository and writes require write access to it. Every label change makes the server re-evaluate sync policies.
+
 ## Virtual repository members
 
 The API's virtual-members `PUT` operation replaces the complete member set. `artifactkeeper.core.virtual_repository_members` therefore treats `members` as desired state: omitted existing members are removed, missing members are added, and priority changes are applied.

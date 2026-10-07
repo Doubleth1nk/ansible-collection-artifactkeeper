@@ -75,6 +75,15 @@
           - key: pypi-remote
             priority: 20
 
+    - name: Label the local Python repository
+      artifactkeeper.core.repository_labels:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        repository: python-local
+        labels:
+          tier: gold
+          team: core
+
     - name: Create automation service account
       artifactkeeper.core.service_account:
         api_url: "{{ artifactkeeper_api_url }}"

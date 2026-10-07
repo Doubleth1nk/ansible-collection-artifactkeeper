@@ -111,6 +111,7 @@ Certificate verification is enabled by default. For an internal CA, prefer `ca_p
 | `artifactkeeper.core.group` | Create/update/delete local groups by exact name and manage membership (`exact`, `append`, `remove`) |
 | `artifactkeeper.core.group_info` | Read-only exact/all group lookup |
 | `artifactkeeper.core.repository_info` | Read-only exact or filtered repository lookup |
+| `artifactkeeper.core.repository_labels` | Manage repository labels as a complete set (`exact`) or by adding, updating, and removing individual labels (`merge`) |
 | `artifactkeeper.core.repository_permission` | Idempotently create/update/remove repository grants for users, groups, or service accounts |
 | `artifactkeeper.core.user` | Create/update/delete users by exact username; password is create-only |
 | `artifactkeeper.core.user_info` | Read-only exact or filtered user lookup |
@@ -200,7 +201,7 @@ Artifact Keeper creates usernames with a `svc-` prefix. The create schema calls 
   register: ci_token
 ```
 
-The plaintext `token` return value exists only when the server mints a token. Store it immediately using your own secret-management workflow. Artifact Keeper's token-list response does not reveal plaintext and does not return the creation-time description; this collection does not falsely claim those values can be re-verified later. `repositories` (repository keys) or `repo_selector` restricts the token to repositories; when neither is supplied, the restriction is left unmanaged. Scope or managed restriction changes rotate the named token, because the API has no token-update endpoint: the replacement is created first and the old token is revoked afterwards. See [docs/api-compatibility.md](docs/api-compatibility.md#service-account-tokens) for the restriction rules.
+The plaintext `token` return value exists only when the server mints a token. Store it immediately using your own secret-management workflow. Artifact Keeper's token-list response does not reveal plaintext and does not return the creation-time description; this collection does not falsely claim those values can be re-verified later. `repositories` (repository keys) or `repo_selector` restricts the token to repositories; when neither is supplied, the restriction is left unmanaged. Scope or managed restriction changes rotate the named token, because the API has no token-update endpoint: the replacement is created first and the old token is revoked afterwards. See [docs/api-compatibility.md](docs/api-compatibility.md#service-account-tokens) for the restriction rules. A `repo_selector` with `match_labels` matches repository labels, which `repository_labels` manages.
 
 ### Project member
 
@@ -275,6 +276,20 @@ The group is identified by its exact `name` and is never renamed or recreated. `
 
 The grant is identified by repository, principal type, and principal; `actions` is the complete desired set. Grants on projects are managed by `project_member`. If more than one matching permission row exists, the module fails instead of choosing one.
 
+### Repository labels
+
+```yaml
+- artifactkeeper.core.repository_labels:
+    api_url: https://artifacts.example.com
+    token: "{{ artifactkeeper_token }}"
+    repository: python-local
+    labels:
+      tier: gold
+      team: core
+```
+
+With the default `labels_mode: exact`, `labels` is the complete set and is applied in one atomic request; labels not listed are removed. `labels` is required in this mode, and removing every label takes the explicit `labels: {}`. With `labels_mode: merge`, the listed labels are added or updated, the keys in `remove_labels` are removed, and other labels are left alone; merge changes are separate requests applied in a fixed order and are not atomic. Keys are exact and case-sensitive, values are strings (use `""` for a key-only label), keys are at most 128 characters, and values at most 256.
+
 ### Repository lookup
 
 ```yaml
@@ -330,7 +345,7 @@ Stateful modules follow the same pattern:
 
 Write-only secrets are treated specially: the collection never fabricates an equality comparison for data the API does not return. Remote repositories also support the current AWS ECR and AWS CodeArtifact upstream-auth configuration; provider settings are sent to Artifact Keeper while AWS credentials remain a server-side concern.
 
-A complete playbook exercising all thirteen modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
+A complete playbook exercising all fourteen modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
 
 ## Development and testing
 
