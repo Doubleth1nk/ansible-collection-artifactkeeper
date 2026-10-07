@@ -13,4 +13,5 @@ htmlcov/
 .idea/
 .vscode/
 .DS_Store
-artifact-keeper-1.10.1-openapi.json
+artifact-keeper-*-openapi.json
+changelogs/.plugin-cache.yaml

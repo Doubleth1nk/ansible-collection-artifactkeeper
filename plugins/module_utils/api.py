@@ -128,7 +128,7 @@ class ArtifactKeeperClient:
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "artifactkeeper.core/0.1.0",
+            "User-Agent": "artifactkeeper.core/0.2.0",
         }
         if include_auth and self.token:
             headers["Authorization"] = "Bearer %s" % self.token

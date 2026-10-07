@@ -1,6 +1,6 @@
 # Artifact Keeper API compatibility
 
-`artifactkeeper.core` 0.1.0 was implemented against the Artifact Keeper API **1.10.1** OpenAPI contract and backend behavior reviewed on 2026-10-03.
+`artifactkeeper.core` 0.2.0 is implemented against the Artifact Keeper API **1.10.1** OpenAPI contract and backend behavior reviewed on 2026-10-03.
 
 The current API, not an older playbook or role, is authoritative for endpoint paths, schemas, authentication, status codes, and mutation semantics. The implementation intentionally keeps API-specific behavior in `plugins/module_utils/api.py` and resource normalization/reconciliation in the modules.
 
@@ -8,7 +8,7 @@ The current API, not an older playbook or role, is authoritative for endpoint pa
 
 Management endpoints under `/api/v1` use Bearer authentication. The collection supports either an existing Artifact Keeper bearer token or administrator username/password credentials; username/password mode logs in at `/api/v1/auth/login` and uses the returned JWT for subsequent requests.
 
-The 1.10.1 OpenAPI security schemes expose `basic_auth` and `bearer_auth`. Basic authentication is documented for package-manager endpoints, not management endpoints. No management `X-API-Key` security scheme is present in the current OpenAPI contract, so 0.1.0 does not expose an `api_key` module parameter.
+The 1.10.1 OpenAPI security schemes expose `basic_auth` and `bearer_auth`. Basic authentication is documented for package-manager endpoints, not management endpoints. No management `X-API-Key` security scheme is present in the current OpenAPI contract, so the collection does not expose an `api_key` module parameter.
 
 ## Projects
 
@@ -32,7 +32,7 @@ The API maps the creation-time service-account description to the account displa
 
 Token plaintext is returned only by the token-creation response. Subsequent token-list responses expose metadata such as token name/prefix, scopes, and timestamps, but not the secret value. The module therefore returns `token` only when a token is newly created.
 
-Named token metadata is reconciled idempotently. Scopes are treated as immutable token metadata; changing them revokes and recreates the matching token. The original relative `expires_in_days` value and token creation description cannot be reconstructed reliably from later list responses, so 0.1.0 does not claim idempotent comparison for those creation-only inputs.
+Named token metadata is reconciled idempotently. Scopes are treated as immutable token metadata; changing them revokes and recreates the matching token. The original relative `expires_in_days` value and token creation description cannot be reconstructed reliably from later list responses, so the collection does not claim idempotent comparison for those creation-only inputs.
 
 ## Repository age gates
 
@@ -76,4 +76,4 @@ The API's virtual-members `PUT` operation replaces the complete member set. `art
 
 ## Compatibility policy
 
-0.1.0 claims compatibility with the API contract reviewed above. No older Artifact Keeper release range is claimed until integration coverage establishes one. Future collection releases should re-review the current `artifact-keeper/artifact-keeper-api` OpenAPI contract and backend implementation before changing behavior.
+0.2.0 claims compatibility with the API contract reviewed above. No older Artifact Keeper release range is claimed until integration coverage establishes one. Future collection releases should re-review the current `artifact-keeper/artifact-keeper-api` OpenAPI contract and backend implementation before changing behavior.

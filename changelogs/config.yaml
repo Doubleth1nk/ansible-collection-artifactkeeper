@@ -1,4 +1,5 @@
 ---
+title: artifactkeeper.core
 changelog_filename_template: ../CHANGELOG.rst
 changes_file: changelog.yaml
 changes_format: combined
