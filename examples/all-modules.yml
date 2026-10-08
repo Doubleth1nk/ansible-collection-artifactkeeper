@@ -93,6 +93,15 @@
         scan_on_proxy: true
         proxy_scan_action: fail_closed
 
+    - name: Block critical findings on the proxied PyPI repository
+      artifactkeeper.core.security_policy:
+        api_url: "{{ artifactkeeper_api_url }}"
+        token: "{{ artifactkeeper_token }}"
+        name: pypi-remote-critical
+        repository: pypi-remote
+        max_severity: critical
+        block_on_fail: true
+
     - name: Create automation service account
       artifactkeeper.core.service_account:
         api_url: "{{ artifactkeeper_api_url }}"

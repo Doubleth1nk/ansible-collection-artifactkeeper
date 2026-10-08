@@ -113,6 +113,7 @@ Certificate verification is enabled by default. For an internal CA, prefer `ca_p
 | `artifactkeeper.core.repository_info` | Read-only exact or filtered repository lookup |
 | `artifactkeeper.core.repository_labels` | Manage repository labels as a complete set (`exact`) or by adding, updating, and removing individual labels (`merge`) |
 | `artifactkeeper.core.repository_scan_config` | Manage a repository's security scan settings; only supplied settings are managed |
+| `artifactkeeper.core.security_policy` | Create/update/delete global or repository-scoped security policies by exact name; only supplied settings are managed |
 | `artifactkeeper.core.repository_permission` | Idempotently create/update/remove repository grants for users, groups, or service accounts |
 | `artifactkeeper.core.user` | Create/update/delete users by exact username; password is create-only |
 | `artifactkeeper.core.user_info` | Read-only exact or filtered user lookup |
@@ -304,6 +305,22 @@ With the default `labels_mode: exact`, `labels` is the complete set and is appli
 ```
 
 Only the supplied settings are managed; omitted settings are neither compared nor sent, and without any settings the module just returns the effective configuration. A repository that was never configured behaves as if every setting had its Artifact Keeper default (scanning off, `severity_threshold: high`, `proxy_scan_action: fail_open`), so a request for default values on such a repository changes nothing and `configured` stays `false`. Changing the configuration requires the repository `admin` action or an administrator account. Artifact Keeper cannot delete a stored scan configuration; setting the defaults restores default behavior.
+
+### Security policy
+
+```yaml
+- artifactkeeper.core.security_policy:
+    api_url: https://artifacts.example.com
+    token: "{{ artifactkeeper_token }}"
+    name: pypi-staging-promotion
+    repository: pypi-staging
+    max_severity: high
+    block_on_fail: true
+    require_signature: true
+    min_staging_hours: 24
+```
+
+A policy is identified by its exact `name`; if several policies share the name, the module fails instead of choosing one. Omit `repository` for a global policy. The scope cannot change after creation: when the named policy exists with a different scope, the module fails, and moving it requires `state: absent` with its current scope followed by a new creation. `max_severity` and `block_on_fail` are required to create a policy; on an existing policy, as for the other settings, only supplied values are compared and sent. Once set, `min_staging_hours` and `max_artifact_age_days` cannot be cleared through the API, so omitting them leaves the stored value in place. New policies are always created enabled; with `enabled: false` the module disables the policy right after creating it. Writing policies requires an administrator token with the `admin` or `*` scope. See [docs/api-compatibility.md](docs/api-compatibility.md#security-policies) for details.
 
 ### Repository lookup
 

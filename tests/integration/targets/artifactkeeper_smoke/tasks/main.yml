@@ -478,3 +478,86 @@
         block_on_policy_violation: false
         severity_threshold: high
         proxy_scan_action: fail_open
+
+# Creates a security policy scoped to an existing disposable repository, so it only
+# runs when one is named explicitly. It never creates a global policy, which would
+# apply to every repository on the instance. The settings are lenient so the brief
+# lifetime of the policy does not block downloads, and the policy is always removed.
+# Writing policies requires an administrator credential with the admin or * scope.
+- name: Exercise repository-scoped security policy lifecycle
+  when: artifactkeeper_test_policy_repository is defined
+  block:
+    - name: Create a repository-scoped security policy
+      artifactkeeper.core.security_policy:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: ansible-smoke-policy
+        repository: "{{ artifactkeeper_test_policy_repository }}"
+        max_severity: critical
+        block_on_fail: false
+        block_unscanned: false
+      register: artifactkeeper_policy_create
+
+    - name: Create the security policy again
+      artifactkeeper.core.security_policy:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: ansible-smoke-policy
+        repository: "{{ artifactkeeper_test_policy_repository }}"
+        max_severity: critical
+        block_on_fail: false
+        block_unscanned: false
+      register: artifactkeeper_policy_repeat
+
+    - name: Disable the security policy
+      artifactkeeper.core.security_policy:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: ansible-smoke-policy
+        repository: "{{ artifactkeeper_test_policy_repository }}"
+        enabled: false
+      register: artifactkeeper_policy_disable
+
+    - name: Delete the security policy in check mode
+      artifactkeeper.core.security_policy:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: ansible-smoke-policy
+        repository: "{{ artifactkeeper_test_policy_repository }}"
+        state: absent
+      check_mode: true
+      register: artifactkeeper_policy_check_delete
+
+    - name: Confirm the security policy still exists after the check-mode delete
+      artifactkeeper.core.security_policy:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: ansible-smoke-policy
+        repository: "{{ artifactkeeper_test_policy_repository }}"
+      register: artifactkeeper_policy_after_check
+
+    - name: Validate security policy lifecycle results
+      ansible.builtin.assert:
+        that:
+          - artifactkeeper_policy_create is changed
+          - artifactkeeper_policy_create.policy.repository_id is not none
+          - artifactkeeper_policy_create.policy.max_severity == 'critical'
+          - not artifactkeeper_policy_create.policy.block_unscanned
+          - artifactkeeper_policy_create.policy.is_enabled
+          - artifactkeeper_policy_repeat is not changed
+          - artifactkeeper_policy_repeat.policy.id == artifactkeeper_policy_create.policy.id
+          - artifactkeeper_policy_disable is changed
+          - artifactkeeper_policy_disable.changed_fields == ['enabled']
+          - not artifactkeeper_policy_disable.policy.is_enabled
+          - artifactkeeper_policy_check_delete is changed
+          - artifactkeeper_policy_after_check is not changed
+          - artifactkeeper_policy_after_check.policy.id == artifactkeeper_policy_create.policy.id
+
+  always:
+    - name: Delete the security policy
+      artifactkeeper.core.security_policy:
+        api_url: "{{ artifactkeeper_test_url }}"
+        token: "{{ artifactkeeper_test_token }}"
+        name: ansible-smoke-policy
+        repository: "{{ artifactkeeper_test_policy_repository }}"
+        state: absent
