@@ -4,6 +4,21 @@ artifactkeeper.core Release Notes
 
 .. contents:: Topics
 
+v0.4.0
+======
+
+Release Summary
+---------------
+
+Adds repository label management, repository security scan configuration, and security policy management. The new ``repository_labels`` module manages a repository's labels as a complete set or by individual key; ``repository_scan_config`` manages a repository's scan settings; and ``security_policy`` manages global and repository-scoped security policies by exact name. 0.4.0 continues to target the Artifact Keeper 1.10.2 API contract.
+
+New Modules
+-----------
+
+- repository_labels - Manage Artifact Keeper repository labels
+- repository_scan_config - Manage Artifact Keeper repository security scan configuration
+- security_policy - Manage Artifact Keeper security policies
+
 v0.3.0
 ======
 
