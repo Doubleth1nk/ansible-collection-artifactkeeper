@@ -83,6 +83,7 @@ These are non-obvious; see `docs/api-compatibility.md`.
 - **Service accounts:** the server prefixes usernames with `svc-`. The module accepts either form. Its `description` param maps to `description` on create and to `display_name` on read and update.
 - `virtual_repository_members` treats `members` as the complete desired set because the API `PUT` replaces the whole set.
 - `repository_labels`: `labels_mode: exact` sends one atomic `PUT`, and `labels` has no default, so omitting it never clears labels (`labels: {}` is the explicit clear). `merge` sends upsert `POST`s then `DELETE`s in sorted key order and is not atomic. Keys and values are validated locally because the server only enforces them as database constraints.
+- `security_policy` uses the exact `name` as its identity although the server allows duplicate names: duplicates fail as ambiguous (also for `state: absent`). `repository_id` cannot be updated, so a scope mismatch fails instead of creating a second policy or deleting and recreating. Create always enables the policy, so `enabled: false` is a follow-up `PUT`; if that fails, the module fails with `changed: true`, names the new policy ID, and does not roll back. `min_staging_hours` and `max_artifact_age_days` cannot be cleared via the API and are managed only when supplied.
 - `project_member` resolves names to UUIDs and reads the existing grant before the API's upsert.
 
 ## Conventions
