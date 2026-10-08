@@ -6,7 +6,7 @@ The collection manages projects, repositories (including repository age-gate pol
 
 ## API baseline
 
-Collection 0.3.0 (the current source) targets the **Artifact Keeper API 1.10.2 contract**. The 0.2.0 collection release was implemented against Artifact Keeper 1.10.1. All endpoints the collection currently uses remain compatible between 1.10.1 and 1.10.2, except that token-creation request validation became stricter in 1.10.2; the payload sent by `service_account_token` already complies. No older Artifact Keeper version range is claimed until integration coverage establishes one. See [docs/api-compatibility.md](docs/api-compatibility.md) for the API decisions that shape module behavior. The API evolves quickly, so CI and future collection releases should continue to validate against the current specification.
+Collection 0.4.0 (the current source) targets the **Artifact Keeper API 1.10.2 contract**, as did 0.3.0. The 0.2.0 collection release was implemented against Artifact Keeper 1.10.1. All endpoints the collection currently uses remain compatible between 1.10.1 and 1.10.2, except that token-creation request validation became stricter in 1.10.2; the payload sent by `service_account_token` already complies. No older Artifact Keeper version range is claimed until integration coverage establishes one. See [docs/api-compatibility.md](docs/api-compatibility.md) for the API decisions that shape module behavior. The API evolves quickly, so CI and future collection releases should continue to validate against the current specification.
 
 The current OpenAPI contract defines Bearer authentication for management endpoints. It does **not** define an `X-API-Key` management security scheme, even though an older/current repository README may mention that header. This collection follows the OpenAPI/backend contract and therefore does not expose an `api_key` parameter.
 
@@ -377,7 +377,7 @@ Stateful modules follow the same pattern:
 
 Write-only secrets are treated specially: the collection never fabricates an equality comparison for data the API does not return. Remote repositories also support the current AWS ECR and AWS CodeArtifact upstream-auth configuration; provider settings are sent to Artifact Keeper while AWS credentials remain a server-side concern.
 
-A complete playbook exercising all fifteen modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
+A complete playbook exercising all sixteen modules is available at [`examples/all-modules.yml`](examples/all-modules.yml).
 
 ## Development and testing
 

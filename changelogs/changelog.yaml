@@ -73,3 +73,24 @@ releases:
       name: group
       namespace: ''
     release_date: '2026-10-07'
+  0.4.0:
+    changes:
+      release_summary: Adds repository label management, repository security scan
+        configuration, and security policy management. The new ``repository_labels``
+        module manages a repository's labels as a complete set or by individual key;
+        ``repository_scan_config`` manages a repository's scan settings; and ``security_policy``
+        manages global and repository-scoped security policies by exact name. 0.4.0
+        continues to target the Artifact Keeper 1.10.2 API contract.
+    fragments:
+    - 0.4.0.yml
+    modules:
+    - description: Manage Artifact Keeper repository labels
+      name: repository_labels
+      namespace: ''
+    - description: Manage Artifact Keeper repository security scan configuration
+      name: repository_scan_config
+      namespace: ''
+    - description: Manage Artifact Keeper security policies
+      name: security_policy
+      namespace: ''
+    release_date: '2026-10-09'
