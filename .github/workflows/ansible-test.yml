@@ -75,7 +75,7 @@ jobs:
               project project_info repository service_account service_account_token \
               project_member virtual_repository_members group_info \
               repository_info repository_permission user user_info group repository_labels \
-              repository_scan_config; do
+              repository_scan_config security_policy; do
             ansible-doc -t module "artifactkeeper.core.${module}" >/dev/null
           done
 
