@@ -1,4 +1,4 @@
-ansible-core>=2.20,<2.22
+ansible-core>=2.22.0,<2.23
 ansible-lint
 pytest
 pytest-cov
